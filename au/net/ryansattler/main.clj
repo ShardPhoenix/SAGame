@@ -1,11 +1,8 @@
 (ns au.net.ryansattler.main
   (:import
     (java.awt Color Dimension)
-    (java.awt.event KeyListener)
     (javax.swing JFrame JOptionPane JPanel))
   (:use clojure.contrib.import-static))
-
-(import-static java.awt.event.KeyEvent VK_LEFT VK_RIGHT VK_UP VK_DOWN VK_SPACE VK_SHIFT)
 
 (def max-fps 30)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
@@ -62,12 +59,11 @@
       (render-debug gfx (game :mouseX) (game :mouseY) (game :in-wall-piece))
       (render-level gfx (game :level))))
 
-(defn update-mouse [gamestate]
-  (let [pointerInfo (java.awt.MouseInfo/getPointerInfo)
-        mousePoint (.getLocation pointerInfo)]
-      (assoc gamestate 
-        :mouseX (.x mousePoint)
-        :mouseY (.y mousePoint))))
+(defn mouseX []
+  (.x (.getLocation (java.awt.MouseInfo/getPointerInfo))))
+
+(defn mouseY []
+  (.y (.getLocation (java.awt.MouseInfo/getPointerInfo))))
 
 (defn in-wall-piece? [wall-piece mouseX mouseY]
   (let [wallX (wall-piece :x)
@@ -83,10 +79,10 @@
         (first (filter #(in-wall-piece? % mouseX mouseY) level))))
 
 (defn update [game frame]
-  (let [game (update-mouse game)]
-    (assoc game :in-wall-piece (collided-piece game))))
+  (assoc game :in-wall-piece (collided-piece game)
+              :mouseX (mouseX)
+              :mouseY (mouseY)))
  
-
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
 
