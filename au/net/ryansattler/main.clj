@@ -1,26 +1,33 @@
 (ns au.net.ryansattler.main
   (:import
     (java.awt Color Dimension)
-    (javax.swing JFrame JOptionPane JPanel))
-  (:use clojure.contrib.import-static))
+    (javax.swing JFrame JOptionPane JPanel)))
 
 (def max-fps 30)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
 (def window-width 800)
 (def window-height 600)
 
-(def wall-width 5)
-(def path-width 10)
+(def wall-width 2)
+(def path-width 20)
+(def maze-size 20)
+(def maze-top-margin 150)
+(def maze-left-margin 200)
 
 (def player
   {:score 0})
 
-(defstruct wall-piece :x :y)
+(defstruct maze-cell :col :row :x :y :top :bottom :left :right)
+(defn make-maze-cell [col row] (struct maze-cell col row 
+                                 (+ maze-left-margin (* (+ wall-width path-width) col)) 
+                                 (+ maze-top-margin (* (+ wall-width path-width) row))
+                                 true true true true))
+
+(defn initial-maze []
+  (for [x (range maze-size) y (range maze-size)] (make-maze-cell x y) ))
 
 (defn gen-level []
-  [(struct wall-piece 150 150) 
-   (struct wall-piece 155 155) 
-   (struct wall-piece 250 275)])
+  (initial-maze))
 
 (def initial-gamestate {:mouseX 0
                         :mouseY 0
@@ -35,7 +42,6 @@
             :black (Color. 0 0 0)
             :background (Color. 255 255 255)})
 
-
 (defn render-background [gfx] 
     (.setColor gfx (color :background))
     (.fillRect gfx 0 0 window-width window-height))
@@ -46,12 +52,24 @@
   (.drawString gfx (str "X: " mouseX) 50 50)
   (.drawString gfx (str "Y: " mouseY) 50 75)
   (if in-wall-piece
-    (.drawString gfx "Collided!" 50 100)))
+    (.drawString gfx (str "Collided with piece at " (in-wall-piece :x) ", " (in-wall-piece :y)) 50 100)))
 
 (defn render-level [gfx level]
   (.setColor gfx (color :black))
-  (doseq [wall-piece level]
-    (.fillRect gfx (:x wall-piece) (:y wall-piece) wall-width wall-width)))
+  (doseq [maze-cell level]
+    (if (maze-cell :top)
+      (.fillRect gfx (:x maze-cell) (- (:y maze-cell) wall-width) path-width wall-width))
+    (if (maze-cell :bottom)
+      (.fillRect gfx (:x maze-cell) (+ (:y maze-cell) wall-width path-width) path-width wall-width))
+    (if (maze-cell :left)
+      (.fillRect gfx (- (:x maze-cell) wall-width) (:y maze-cell) wall-width path-width))
+    (if (maze-cell :right)
+      (.fillRect gfx (+ (:x maze-cell) wall-width path-width) (:y maze-cell) wall-width path-width))
+    ))
+    
+
+
+;(.fillRect gfx (:x maze-cell) (:y maze-cell) wall-width wall-width)))
 
 (defn render [game window]
   (let [gfx (.getGraphics window)]
@@ -59,10 +77,10 @@
       (render-debug gfx (game :mouseX) (game :mouseY) (game :in-wall-piece))
       (render-level gfx (game :level))))
 
-(defn mouseX []
+(defn get-mouseX []
   (.x (.getLocation (java.awt.MouseInfo/getPointerInfo))))
 
-(defn mouseY []
+(defn get-mouseY []
   (.y (.getLocation (java.awt.MouseInfo/getPointerInfo))))
 
 (defn in-wall-piece? [wall-piece mouseX mouseY]
@@ -80,8 +98,8 @@
 
 (defn update [game frame]
   (assoc game :in-wall-piece (collided-piece game)
-              :mouseX (mouseX)
-              :mouseY (mouseY)))
+              :mouseX (get-mouseX)
+              :mouseY (get-mouseY)))
  
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
