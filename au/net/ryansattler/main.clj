@@ -1,3 +1,14 @@
+;TODO:
+;- add actual maze-gen algo
+;- separate into files (eg for graphics.
+;- making graphics non-flickering (use buffered-image
+;- add timelimit and win condition, lose condition
+;- multiple levels, gui (start button etc), high scores
+;- graphical effects, challenge modes, points for squares touched etc
+;- no-cheat mouse interpolation
+;- sounds
+;- distributable package and/or applet
+
 (ns au.net.ryansattler.main
   (:import
     (java.awt Color Dimension)
@@ -5,30 +16,40 @@
 
 (def max-fps 30)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
-(def window-width 800)
-(def window-height 600)
+(def window-width 1024)
+(def window-height 768)
 
 (def wall-width 15)
 (def path-width 15)
-(def maze-size 25) ;odd number
-(def maze-top-margin 100)
-(def maze-left-margin 200)
+(def maze-size 35) ;odd number
+(def maze-top-margin 150)
+(def maze-left-margin 300)
 
 (def player
-  {:score 0})
+  {:score 0
+   :level-on 0})
 
-(defstruct maze-cell :col :row :x :y :wall :horiz :vert)
-(defn make-maze-cell [col row wall?] (struct maze-cell col row 
-                                      (+ maze-left-margin (* wall-width col)) 
-                                      (+ maze-top-margin (* wall-width row))
-                                      wall?))
+(defstruct maze-cell :col :row :x :y :wall :visited :touched)
+(defn make-maze-cell [col row wall?] 
+  (struct maze-cell 
+	  col 
+	  row 
+	  (+ maze-left-margin (* wall-width col)) 
+	  (+ maze-top-margin (* wall-width row))
+	  wall?
+	  false
+	  false))
 
 (defn initial-maze []
   (for [x (range maze-size) y (range maze-size)] 
     (make-maze-cell x y (or (zero? (rem x 2)) (zero? (rem y 2))))))
 
+(defn gen-level2 [maze]
+  (for [cell maze]
+    (assoc cell :wall (> (Math/random) 0.5))))
+
 (defn gen-level []
-  (initial-maze))
+  (gen-level2 (initial-maze)))
 
 (def initial-gamestate {:mouseX 0
                         :mouseY 0
@@ -36,10 +57,9 @@
                         :level (gen-level)
                         :in-wall-piece nil})
 
-(def images nil) ;map from item-image-type to render function? - need to render in right order too
-
 (def color {:blue (Color. 0 61 245)
             :red  (Color. 245 61 0)
+            :green(Color. 61 245 0)
             :black (Color. 0 0 0)
             :background (Color. 255 255 255)})
 
@@ -53,18 +73,21 @@
   (.drawString gfx (str "X: " mouseX) 50 50)
   (.drawString gfx (str "Y: " mouseY) 50 75)
   (if in-wall-piece
-    (.drawString gfx (str "Collided with piece at " (in-wall-piece :x) ", " (in-wall-piece :y)) 50 100)))
+    (.drawString gfx (str "Collided at " (in-wall-piece :x) ", " (in-wall-piece :y)) 50 100)))
 
 (defn render-level [gfx level]
   (doseq [maze-cell level]
     (if (:wall maze-cell)
-        (do 
-          (.setColor gfx (color :black))
+        (do
+          (if (:touched maze-cell)
+            (.setColor gfx (color :red))
+            (.setColor gfx (color :black)))
+          (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
+        (do
+          (if (:touched maze-cell)
+            (.setColor gfx (color :green))
+            (.setColor gfx (color :background)))
           (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
-    
-
-
-;(.fillRect gfx (:x maze-cell) (:y maze-cell) wall-width wall-width)))
 
 (defn render [game window]
   (let [gfx (.getGraphics window)]
@@ -77,6 +100,21 @@
 
 (defn get-mouseY []
   (.y (.getLocation (java.awt.MouseInfo/getPointerInfo))))
+
+(defn in-piece? [piece mouseX mouseY]
+    (let [wallX (piece :x)
+        wallY (piece :y)]
+	    (and
+	      (>= mouseY wallY)
+	      (<= mouseY (+ wallY wall-width))
+	      (>= mouseX wallX)
+	      (<= mouseX (+ wallX wall-width)))))
+
+(defn update-touched [level mouseX mouseY]
+  (map #(if (in-piece? % mouseX mouseY)
+           (assoc % :touched true)
+           %) 
+    level))
 
 (defn in-wall-piece? [wall-piece mouseX mouseY]
   (let [wallX (wall-piece :x)
@@ -94,9 +132,10 @@
 
 (defn update [game frame]
   (assoc game :in-wall-piece (collided-piece game)
+              :level (update-touched (game :level) (get-mouseX) (get-mouseY))
               :mouseX (get-mouseX)
               :mouseY (get-mouseY)))
- 
+
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
 
