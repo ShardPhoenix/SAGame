@@ -116,19 +116,9 @@
            %) 
     level))
 
-(defn in-wall-piece? [wall-piece mouseX mouseY]
-  (let [wallX (wall-piece :x)
-        wallY (wall-piece :y)]
-    (and
-      (wall-piece :wall)
-      (>= mouseY wallY)
-      (<= mouseY (+ wallY wall-width))
-      (>= mouseX wallX)
-      (<= mouseX (+ wallX wall-width)))))
-
 (defn collided-piece [gamestate]
   (let [{:keys [mouseX mouseY level]} gamestate]
-        (first (filter #(in-wall-piece? % mouseX mouseY) level))))
+        (first (filter #(and (:wall %) (in-piece? % mouseX mouseY)) level))))
 
 (defn update [game frame]
   (assoc game :in-wall-piece (collided-piece game)
