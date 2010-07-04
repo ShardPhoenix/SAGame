@@ -1,18 +1,23 @@
 ;TODO:
 ;- add actual maze-gen algo
-;- separate into files (eg for graphics.
-;- making graphics non-flickering (use buffered-image
+;- separate into files (eg for graphics, maze-gen part)
+;- making graphics non-flickering (use buffered-image)
 ;- add timelimit and win condition, lose condition
 ;- multiple levels, gui (start button etc), high scores
-;- graphical effects, challenge modes, points for squares touched etc
+;- graphical effects, challenge modes, sub-goals, points for squares touched etc
 ;- no-cheat mouse interpolation
 ;- sounds
 ;- distributable package and/or applet
 
 (ns au.net.ryansattler.main
   (:import
-    (java.awt Color Dimension)
+    (java.awt Color Dimension Graphics)
     (javax.swing JFrame JOptionPane JPanel)))
+
+(def debug true)
+
+(if debug 
+  (set! *warn-on-reflection* true))
 
 (def max-fps 30)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
@@ -63,19 +68,19 @@
             :black (Color. 0 0 0)
             :background (Color. 255 255 255)})
 
-(defn render-background [gfx] 
+(defn render-background [#^Graphics gfx] 
     (.setColor gfx (color :background))
     (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
 
-(defn render-debug [gfx mouseX mouseY in-wall-piece]
-  ;(println frame)
+(defn render-debug [#^Graphics gfx frame mouseX mouseY in-wall-piece]
+  (println frame)
   (.setColor gfx (color :black))
   (.drawString gfx (str "X: " mouseX) 50 50)
   (.drawString gfx (str "Y: " mouseY) 50 75)
   (if in-wall-piece
     (.drawString gfx (str "Collided at " (in-wall-piece :x) ", " (in-wall-piece :y)) 50 100)))
 
-(defn render-level [gfx level]
+(defn render-level [#^Graphics gfx level]
   (doseq [maze-cell level]
     (if (:wall maze-cell)
         (do
@@ -89,10 +94,11 @@
             (.setColor gfx (color :background)))
           (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
 
-(defn render [game window]
-  (let [gfx (.getGraphics window)]
+(defn render [game window frame]
+  (let [gfx (.getGraphics #^JFrame window)]
       (render-background gfx)
-      (render-debug gfx (game :mouseX) (game :mouseY) (game :in-wall-piece))
+      (if debug
+        (render-debug gfx frame (game :mouseX) (game :mouseY) (game :in-wall-piece)))
       (render-level gfx (game :level))))
 
 (defn get-mouseX []
@@ -103,7 +109,7 @@
 
 (defn in-piece? [piece mouseX mouseY]
     (let [wallX (piece :x)
-        wallY (piece :y)]
+          wallY (piece :y)]
 	    (and
 	      (>= mouseY wallY)
 	      (<= mouseY (+ wallY wall-width))
@@ -129,7 +135,7 @@
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
 
-(defn configure-gui [window panel]
+(defn configure-gui [#^JFrame window #^JPanel panel]
   (doto panel
     (.setPreferredSize (Dimension. window-width window-height))
     (.setFocusable true))
@@ -140,14 +146,16 @@
     (.setVisible true)))
 
 (let [window (JFrame. "You Can't Touch The Walls")
-      panel (javax.swing.JPanel.)]
+      panel (JPanel.)]
   (configure-gui window panel)
   (loop [gamestate initial-gamestate
          frame 1]
     (let [start-time (current-time)
           updated-gamestate (update gamestate frame)]
-         (render gamestate window)
+         (render gamestate window frame)
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
+      (if debug
+        (println (double render-time)))
       (java.lang.Thread/sleep wait-time))
     (recur updated-gamestate (inc frame)))))
