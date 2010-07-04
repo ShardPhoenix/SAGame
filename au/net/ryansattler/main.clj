@@ -8,23 +8,24 @@
 (def window-width 800)
 (def window-height 600)
 
-(def wall-width 2)
-(def path-width 20)
-(def maze-size 20)
-(def maze-top-margin 150)
+(def wall-width 15)
+(def path-width 15)
+(def maze-size 25) ;odd number
+(def maze-top-margin 100)
 (def maze-left-margin 200)
 
 (def player
   {:score 0})
 
-(defstruct maze-cell :col :row :x :y :top :bottom :left :right)
-(defn make-maze-cell [col row] (struct maze-cell col row 
-                                 (+ maze-left-margin (* (+ wall-width path-width) col)) 
-                                 (+ maze-top-margin (* (+ wall-width path-width) row))
-                                 true true true true))
+(defstruct maze-cell :col :row :x :y :wall :horiz :vert)
+(defn make-maze-cell [col row wall?] (struct maze-cell col row 
+                                      (+ maze-left-margin (* wall-width col)) 
+                                      (+ maze-top-margin (* wall-width row))
+                                      wall?))
 
 (defn initial-maze []
-  (for [x (range maze-size) y (range maze-size)] (make-maze-cell x y) ))
+  (for [x (range maze-size) y (range maze-size)] 
+    (make-maze-cell x y (or (zero? (rem x 2)) (zero? (rem y 2))))))
 
 (defn gen-level []
   (initial-maze))
@@ -44,7 +45,7 @@
 
 (defn render-background [gfx] 
     (.setColor gfx (color :background))
-    (.fillRect gfx 0 0 window-width window-height))
+    (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
 
 (defn render-debug [gfx mouseX mouseY in-wall-piece]
   ;(println frame)
@@ -55,17 +56,11 @@
     (.drawString gfx (str "Collided with piece at " (in-wall-piece :x) ", " (in-wall-piece :y)) 50 100)))
 
 (defn render-level [gfx level]
-  (.setColor gfx (color :black))
   (doseq [maze-cell level]
-    (if (maze-cell :top)
-      (.fillRect gfx (:x maze-cell) (- (:y maze-cell) wall-width) path-width wall-width))
-    (if (maze-cell :bottom)
-      (.fillRect gfx (:x maze-cell) (+ (:y maze-cell) wall-width path-width) path-width wall-width))
-    (if (maze-cell :left)
-      (.fillRect gfx (- (:x maze-cell) wall-width) (:y maze-cell) wall-width path-width))
-    (if (maze-cell :right)
-      (.fillRect gfx (+ (:x maze-cell) wall-width path-width) (:y maze-cell) wall-width path-width))
-    ))
+    (if (:wall maze-cell)
+        (do 
+          (.setColor gfx (color :black))
+          (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
     
 
 
@@ -87,6 +82,7 @@
   (let [wallX (wall-piece :x)
         wallY (wall-piece :y)]
     (and
+      (wall-piece :wall)
       (>= mouseY wallY)
       (<= mouseY (+ wallY wall-width))
       (>= mouseX wallX)
