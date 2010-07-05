@@ -1,6 +1,7 @@
 (ns au.net.ryansattler.graphics
   (:import
-    (java.awt Color Dimension Graphics)
+    (java.awt Color Dimension Graphics Graphics2D)
+    (java.awt.image BufferedImage)
     (javax.swing JFrame JOptionPane JPanel))
   (:use au.net.ryansattler.constants))
 
@@ -37,11 +38,14 @@
           (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
 
 (defn render [game window frame]
-  (let [gfx (.getGraphics #^JFrame window)]
+  (let [#^BufferedImage image (.createImage window window-width window-height)
+        gfx (.createGraphics image)
+        #^Graphics2D gfx2 (.getGraphics #^JFrame window)]
       (render-background gfx)
       (if debug
         (render-debug gfx frame (game :mouseX) (game :mouseY) (game :in-wall-piece)))
-      (render-level gfx (game :level))))
+      (render-level gfx (game :level))
+      (.drawImage gfx2 image 0 0 window)))
 
 (defn configure-gui [#^JFrame window #^JPanel panel]
   (doto panel
