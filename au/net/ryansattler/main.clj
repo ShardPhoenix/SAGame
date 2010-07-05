@@ -1,7 +1,5 @@
 ;TODO:
 ;- add actual maze-gen algo
-;- separate into files (eg for graphics, maze-gen part)
-;- making graphics non-flickering (use buffered-image)
 ;- add time limit and win condition, lose condition
 ;- multiple levels, gui (start button etc), high scores
 ;- graphical effects, challenge modes, sub-goals, points for squares touched etc
@@ -12,8 +10,9 @@
 (ns au.net.ryansattler.main
   (:import
     (javax.swing JFrame JPanel))
-  (:use au.net.ryansattler.graphics)
-  (:use au.net.ryansattler.constants))
+  (:use au.net.ryansattler.constants)
+  (:use [au.net.ryansattler.graphics  :only (render configure-gui)])
+  (:use [au.net.ryansattler.mazegen :only (gen-level)]))
 
 (if debug 
   (set! *warn-on-reflection* true))
@@ -21,28 +20,6 @@
 (def player
   {:score 0
    :level-on 0})
-
-(defstruct maze-cell :col :row :x :y :wall :visited :touched)
-(defn make-maze-cell [col row wall?] 
-  (struct maze-cell 
-	  col 
-	  row 
-	  (+ maze-left-margin (* wall-width col)) 
-	  (+ maze-top-margin (* wall-width row))
-	  wall?
-	  false
-	  false))
-
-(defn initial-maze []
-  (for [x (range maze-size) y (range maze-size)] 
-    (make-maze-cell x y (or (zero? (rem x 2)) (zero? (rem y 2))))))
-
-(defn gen-level2 [maze]
-  (for [cell maze]
-    (assoc cell :wall (> (Math/random) 0.5))))
-
-(defn gen-level []
-  (gen-level2 (initial-maze)))
 
 (def initial-gamestate {:mouseX 0
                         :mouseY 0
