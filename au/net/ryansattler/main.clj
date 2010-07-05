@@ -2,33 +2,21 @@
 ;- add actual maze-gen algo
 ;- separate into files (eg for graphics, maze-gen part)
 ;- making graphics non-flickering (use buffered-image)
-;- add timelimit and win condition, lose condition
+;- add time limit and win condition, lose condition
 ;- multiple levels, gui (start button etc), high scores
 ;- graphical effects, challenge modes, sub-goals, points for squares touched etc
-;- no-cheat mouse interpolation
+;- no-cheat mouse interpolation (if needed)
 ;- sounds
 ;- distributable package and/or applet
 
 (ns au.net.ryansattler.main
   (:import
-    (java.awt Color Dimension Graphics)
-    (javax.swing JFrame JOptionPane JPanel)))
-
-(def debug true)
+    (javax.swing JFrame JPanel))
+  (:use au.net.ryansattler.graphics)
+  (:use au.net.ryansattler.constants))
 
 (if debug 
   (set! *warn-on-reflection* true))
-
-(def max-fps 30)
-(def min-millis-per-frame (long (/ 1000 max-fps)))
-(def window-width 1024)
-(def window-height 768)
-
-(def wall-width 15)
-(def path-width 15)
-(def maze-size 35) ;odd number
-(def maze-top-margin 150)
-(def maze-left-margin 300)
 
 (def player
   {:score 0
@@ -61,45 +49,6 @@
                         :levelnum 1
                         :level (gen-level)
                         :in-wall-piece nil})
-
-(def color {:blue (Color. 0 61 245)
-            :red  (Color. 245 61 0)
-            :green(Color. 61 245 0)
-            :black (Color. 0 0 0)
-            :background (Color. 255 255 255)})
-
-(defn render-background [#^Graphics gfx] 
-    (.setColor gfx (color :background))
-    (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
-
-(defn render-debug [#^Graphics gfx frame mouseX mouseY in-wall-piece]
-  (println frame)
-  (.setColor gfx (color :black))
-  (.drawString gfx (str "X: " mouseX) 50 50)
-  (.drawString gfx (str "Y: " mouseY) 50 75)
-  (if in-wall-piece
-    (.drawString gfx (str "Collided at " (in-wall-piece :x) ", " (in-wall-piece :y)) 50 100)))
-
-(defn render-level [#^Graphics gfx level]
-  (doseq [maze-cell level]
-    (if (:wall maze-cell)
-        (do
-          (if (:touched maze-cell)
-            (.setColor gfx (color :red))
-            (.setColor gfx (color :black)))
-          (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
-        (do
-          (if (:touched maze-cell)
-            (.setColor gfx (color :green))
-            (.setColor gfx (color :background)))
-          (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
-
-(defn render [game window frame]
-  (let [gfx (.getGraphics #^JFrame window)]
-      (render-background gfx)
-      (if debug
-        (render-debug gfx frame (game :mouseX) (game :mouseY) (game :in-wall-piece)))
-      (render-level gfx (game :level))))
 
 (defn get-mouseX []
   (.x (.getLocation (java.awt.MouseInfo/getPointerInfo))))
@@ -134,16 +83,6 @@
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
-
-(defn configure-gui [#^JFrame window #^JPanel panel]
-  (doto panel
-    (.setPreferredSize (Dimension. window-width window-height))
-    (.setFocusable true))
-  (doto window
-    (.add panel)
-    (.pack)
-    (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-    (.setVisible true)))
 
 (let [window (JFrame. "You Can't Touch The Walls")
       panel (JPanel.)]
