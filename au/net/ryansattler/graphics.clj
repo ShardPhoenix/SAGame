@@ -39,11 +39,11 @@
 
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
-        gfx (.createGraphics image)
+        #^Graphics gfx (.createGraphics image)
         #^Graphics2D gfx2 (.getGraphics #^JFrame window)]
       (render-background gfx)
       (if debug
-        (render-debug gfx frame (game :mouseX) (game :mouseY) (game :in-wall-piece)))
+        (render-debug gfx frame (game :mouseX) (game :mouseY) (game :collided-piece)))
       (render-level gfx (game :level))
       (.drawImage gfx2 image 0 0 window)))
 

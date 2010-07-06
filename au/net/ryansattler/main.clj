@@ -25,10 +25,11 @@
                         :mouseY 0
                         :levelnum 1
                         :level (gen-level)
-                        :in-wall-piece nil})
+                        :collided-piece nil})
 
+;moved one pixel to the right - seems to feel more accurate that way?
 (defn get-mouseX []
-  (.x (.getLocation (java.awt.MouseInfo/getPointerInfo))))
+  (inc (.x (.getLocation (java.awt.MouseInfo/getPointerInfo)))))
 
 (defn get-mouseY []
   (.y (.getLocation (java.awt.MouseInfo/getPointerInfo))))
@@ -53,7 +54,7 @@
         (first (filter #(and (:wall %) (in-piece? % mouseX mouseY)) level))))
 
 (defn update [game frame]
-  (assoc game :in-wall-piece (collided-piece game)
+  (assoc game :collided-piece (collided-piece game)
               :level (update-touched (game :level) (get-mouseX) (get-mouseY))
               :mouseX (get-mouseX)
               :mouseY (get-mouseY)))
