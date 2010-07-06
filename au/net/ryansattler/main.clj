@@ -3,8 +3,13 @@
 ;- add time limit and win condition, lose condition
 ;- multiple levels, gui (start button etc), high scores
 ;- graphical effects, challenge modes, sub-goals, points for squares touched etc
-;- no-cheat mouse interpolation (if needed)
-;- sounds
+;- powerups?
+;- hardcore modes: 1 hit/life, narrower corridors, low time-limit
+;- no-cheat mouse interpolation (if needed) & make sure green path actually connects
+;- sounds/music
+;- enemies?!
+;- pause (+ free mouse) w/ keystroke - & move mouse back when unpaused?
+;- click-and-drag?
 ;- distributable package and/or applet
 
 (ns au.net.ryansattler.main
@@ -28,11 +33,11 @@
                         :collided-piece nil})
 
 ;moved one pixel to the right - seems to feel more accurate that way?
-(defn get-mouseX []
-  (inc (.x (.getLocation (java.awt.MouseInfo/getPointerInfo)))))
+(defn get-mouseX [#^JFrame window]
+  (inc (- (.x (.getLocation (java.awt.MouseInfo/getPointerInfo))) (.getX window))))
 
-(defn get-mouseY []
-  (.y (.getLocation (java.awt.MouseInfo/getPointerInfo))))
+(defn get-mouseY [#^JFrame window]
+  (- (.y (.getLocation (java.awt.MouseInfo/getPointerInfo))) (.getY window)))
 
 (defn in-piece? [piece mouseX mouseY]
     (let [wallX (piece :x)
@@ -53,11 +58,11 @@
   (let [{:keys [mouseX mouseY level]} gamestate]
         (first (filter #(and (:wall %) (in-piece? % mouseX mouseY)) level))))
 
-(defn update [game frame]
+(defn update [game frame window]
   (assoc game :collided-piece (collided-piece game)
-              :level (update-touched (game :level) (get-mouseX) (get-mouseY))
-              :mouseX (get-mouseX)
-              :mouseY (get-mouseY)))
+              :level (update-touched (game :level) (get-mouseX window) (get-mouseY window))
+              :mouseX (get-mouseX window)
+              :mouseY (get-mouseY window)))
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -68,7 +73,7 @@
   (loop [gamestate initial-gamestate
          frame 1]
     (let [start-time (current-time)
-          updated-gamestate (update gamestate frame)]
+          updated-gamestate (update gamestate frame window)]
          (render gamestate window frame)
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
