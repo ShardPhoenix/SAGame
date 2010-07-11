@@ -12,6 +12,9 @@
 ;- distributable package and/or applet
 ;- tests
 ;- keyboard driven game with "you can't escape the minotaur" instead?!
+;- fix collision
+;- smooth animation?
+;- "theseus and minotaur", treasures, no move through walls, touching walls (treasures, etc) alerts minotaur?
 
 (ns au.net.ryansattler.main
   (:import
@@ -39,6 +42,11 @@
                         :playery (-  maze-top-margin wall-width)
                         :collided-piece nil})
 
+(defn current-time []
+  (/ (java.lang.System/nanoTime) 1000000))
+
+(def last-moved (atom (current-time)))
+
 (defn in-piece? [piece x y]
     (let [wallX (piece :x)
           wallY (piece :y)]
@@ -48,8 +56,8 @@
 	      (>= x wallX)
 	      (<= x (+ wallX wall-width)))))
 
-(defn update-touched [level mouseX mouseY]
-  (map #(if (in-piece? % mouseX mouseY)
+(defn update-touched [level x y]
+  (map #(if (in-piece? % (inc x) (inc y))
            (assoc % :touched true)
            %) 
     level))
@@ -58,20 +66,19 @@
   (let [{:keys [playerx playery level]} gamestate]
         (first (filter #(and (:wall %) (in-piece? % playerx playery)) level))))
 
-;do based on time rather than frames, for smoother movement
 (defn try-move [frame playerpos direc]
-  (if (zero? (rem frame 3))
-    (+ playerpos (* wall-width direc))
-    playerpos))
+  (let [time (current-time)]
+	  (if (and (not (zero? direc)) (> (- time @last-moved) min-millis-per-move))
+     (do
+      (compare-and-set! last-moved @last-moved (current-time))
+	    (+ playerpos (* wall-width direc)))
+	    playerpos)))
 
 (defn update [game input frame window]
   (assoc game :collided-piece (collided-piece game)
               :level (update-touched (game :level) (game :playerx) (game :playery))
               :playerx (try-move frame (game :playerx) (input :x-direc))
               :playery (try-move frame (game :playery) (input :y-direc))))
-
-(defn current-time []
-  (/ (java.lang.System/nanoTime) 1000000))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
