@@ -38,7 +38,7 @@
 
 (defn render-player [#^Graphics gfx game]
   (.setColor gfx (color :blue))
-  (.fillRect gfx (game :playerx) (game :playery) wall-width wall-width))
+  (.fillRect gfx (first (game :playerpos)) (second (game :playerpos)) wall-width wall-width))
 
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)

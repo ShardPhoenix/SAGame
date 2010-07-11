@@ -4,17 +4,19 @@
 ;- graphical effects, challenge modes, sub-goals, points for squares touched etc
 ;- powerups?
 ;- hardcore modes: 1 hit/life, narrower corridors, low time-limit
-;- no-cheat mouse interpolation (if needed) & make sure green path actually connects
 ;- sounds/music
-;- enemies?!
-;- pause (+ free mouse) w/ keystroke - & move mouse back when unpaused?
+;- start, pause buttons
 ;- click-and-drag?
 ;- distributable package and/or applet
 ;- tests
 ;- keyboard driven game with "you can't escape the minotaur" instead?!
-;- fix collision
 ;- smooth animation?
 ;- "theseus and minotaur", treasures, no move through walls, touching walls (treasures, etc) alerts minotaur?
+;- diff. music after minotaur is activiated
+;- goal: grab all treasures and escape, don't get caught by minotaur
+;- don't allow walking through walls
+;- time limit after which minotaur goes straight for you?
+;- "you can't bump the walls" or "you can't escape the minotaur" or..?
 
 (ns au.net.ryansattler.main
   (:import
@@ -38,8 +40,7 @@
 
 (def initial-gamestate {:levelnum 1
                         :level (gen-level)
-                        :playerx (- maze-left-margin wall-width)
-                        :playery (-  maze-top-margin wall-width)
+                        :playerpos [(+ maze-left-margin wall-width) (+  maze-top-margin wall-width)]
                         :collided-piece nil})
 
 (defn current-time []
@@ -47,8 +48,11 @@
 
 (def last-moved (atom (current-time)))
 
-(defn in-piece? [piece x y]
-    (let [wallX (piece :x)
+;fix weird collision requiring inc?
+(defn in-piece? [piece coord]
+    (let [x (inc (first coord))
+          y (inc (second coord))
+          wallX (piece :x)
           wallY (piece :y)]
 	    (and
 	      (>= y wallY)
@@ -56,29 +60,34 @@
 	      (>= x wallX)
 	      (<= x (+ wallX wall-width)))))
 
-(defn update-touched [level x y]
-  (map #(if (in-piece? % (inc x) (inc y))
+(defn update-touched [level coord]
+  (map #(if (in-piece? % coord)
            (assoc % :touched true)
            %) 
     level))
 
-(defn collided-piece [gamestate]
-  (let [{:keys [playerx playery level]} gamestate]
-        (first (filter #(and (:wall %) (in-piece? % playerx playery)) level))))
+(defn is-in-wall? [coord level]
+  (pos? (count (filter true? (map #(and (:wall %) (in-piece? % coord)) level)))))
 
-(defn try-move [frame playerpos direc]
-  (let [time (current-time)]
-	  (if (and (not (zero? direc)) (> (- time @last-moved) min-millis-per-move))
+
+;update to move diagonally (one func for both..)
+;add wall-bumping somehow - multiple returns?
+(defn try-move [coord x-direc y-direc level]
+  (println coord x-direc y-direc)
+  (let [time (current-time)
+        newcoord [(+ (first coord) (* wall-width x-direc)) 
+                  (+ (second coord) (* wall-width y-direc))]]
+	  (if (and (not (and (zero? x-direc) (zero? y-direc))) 
+             (> (- time @last-moved) min-millis-per-move)
+             (not (is-in-wall? newcoord level)))
      (do
       (compare-and-set! last-moved @last-moved (current-time))
-	    (+ playerpos (* wall-width direc)))
-	    playerpos)))
+	     newcoord)
+	    coord)))
 
 (defn update [game input frame window]
-  (assoc game :collided-piece (collided-piece game)
-              :level (update-touched (game :level) (game :playerx) (game :playery))
-              :playerx (try-move frame (game :playerx) (input :x-direc))
-              :playery (try-move frame (game :playery) (input :y-direc))))
+  (assoc game :level (update-touched (game :level) (game :playerpos))
+              :playerpos (try-move (game :playerpos) (input :x-direc) (input :y-direc) (game :level))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
@@ -90,17 +99,15 @@
          :fire? (or (keys-set VK_SPACE) (keys-set VK_SHIFT))}))
 
 (defn create-panel [width height key-code-atom]
-  (proxy [JPanel KeyListener]
-    [] ; superclass constructor arguments
+  (proxy [JPanel KeyListener] []
     (getPreferredSize [] (Dimension. width height))
     (keyPressed [#^KeyEvent e]
       (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyCode e))))
     (keyReleased [#^KeyEvent e]
       (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyCode e))))
-    (keyTyped [e]) ; do nothing
-    ))
+    (keyTyped [e])))
 
-(let [window (JFrame. "You Can't Touch The Walls")
+(let [window (JFrame. "You Can't Bump The Walls")
       keys-set-atom (atom #{}) ;set of keyboard keys currently being held down by player
       panel (create-panel window-width window-height keys-set-atom)]
   (configure-gui window panel)
