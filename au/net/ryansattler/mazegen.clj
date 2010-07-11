@@ -41,18 +41,16 @@
     (assoc maze wallc ex-wall)))
  
 (defn gen-level2 [maze stack coord]
-  (let [visited (assoc (maze coord) :visited true)
-        maze (assoc maze coord visited)
+  (let [maze (assoc maze coord (assoc (maze coord) :visited true))
         neighbours (get-unvisited-neighbour-coords maze coord)]
     (if (seq neighbours)
       (let
         [neighbour (rand-nth neighbours)
-         stack (conj stack coord)
          maze (remove-wall maze neighbour coord)]
-        (recur maze stack neighbour))
-        (if (empty? stack)
-           maze
-          (recur maze (pop stack) (peek stack))))))
+        (recur maze (conj stack coord) neighbour))
+      (if (empty? stack)
+         maze
+        (recur maze (pop stack) (peek stack))))))
 
 ;return just the values (actual maze-cells) for now. Might use whole map later if needed.
 (defn gen-level []

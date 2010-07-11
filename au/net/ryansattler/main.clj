@@ -1,5 +1,4 @@
 ;TODO:
-;- add actual maze-gen algo
 ;- add time limit and win condition, lose condition
 ;- multiple levels, gui (start button etc), high scores
 ;- graphical effects, challenge modes, sub-goals, points for squares touched etc
@@ -11,6 +10,8 @@
 ;- pause (+ free mouse) w/ keystroke - & move mouse back when unpaused?
 ;- click-and-drag?
 ;- distributable package and/or applet
+;- tests
+;- keyboard driven game with "you can't escape the minotaur" instead?!
 
 (ns au.net.ryansattler.main
   (:import
