@@ -69,11 +69,8 @@
 (defn is-in-wall? [coord level]
   (pos? (count (filter true? (map #(and (:wall %) (in-piece? % coord)) level)))))
 
-
-;update to move diagonally (one func for both..)
 ;add wall-bumping somehow - multiple returns?
 (defn try-move [coord x-direc y-direc level]
-  (println coord x-direc y-direc)
   (let [time (current-time)
         newcoord [(+ (first coord) (* wall-width x-direc)) 
                   (+ (second coord) (* wall-width y-direc))]]
@@ -95,8 +92,7 @@
         up (if (keys-set VK_UP) -1 0)
         down (if (keys-set VK_DOWN) 1 0)]
         {:x-direc (+ left right) 
-         :y-direc (+ up down) 
-         :fire? (or (keys-set VK_SPACE) (keys-set VK_SHIFT))}))
+         :y-direc (+ up down)}))
 
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
