@@ -38,9 +38,6 @@
   {:score 0
    :level-on 0})
 
-(defn coord-to-pix [[col row]]
-  [(+ maze-left-margin (* col wall-width)) (+  maze-top-margin (* row wall-width))])
-
 (defn find-minotaur [level]
   (let [minotaur-start (first (filter #(true? (:minotaur-start %)) level))]
     [(:col minotaur-start) (:row minotaur-start)]))
@@ -50,8 +47,8 @@
 	  {:levelnum 1
 	  :level level
 	  ;change to row/col and calc this when rendering?
-	  :playerpos (coord-to-pix [1 1])
-	  :minotaurpos (coord-to-pix (find-minotaur level))
+	  :playerpos [1 1]
+	  :minotaurpos (find-minotaur level)
 	  :collided-piece nil}))
 
 (defn current-time []
@@ -60,16 +57,9 @@
 (def last-moved (atom (current-time)))
 
 ;fix weird collision requiring inc?
-(defn in-piece? [piece coord]
-    (let [x (inc (first coord))
-          y (inc (second coord))
-          wallX (piece :x)
-          wallY (piece :y)]
-	    (and
-	      (>= y wallY)
-	      (<= y (+ wallY wall-width))
-	      (>= x wallX)
-	      (<= x (+ wallX wall-width)))))
+(defn in-piece? [piece [col row]]
+    (and (= (:col piece) col)
+         (= (:row piece) row))) 
 
 (defn update-touched [level coord]
   (map #(if (in-piece? % coord)
@@ -81,17 +71,17 @@
   (pos? (count (filter true? (map #(and (:wall %) (in-piece? % coord)) level)))))
 
 ;add wall-bumping somehow - multiple returns?
-(defn try-move [coord x-direc y-direc level]
+(defn try-move [[col row] x-direc y-direc level]
   (let [time (current-time)
-        newcoord [(+ (first coord) (* wall-width x-direc)) 
-                  (+ (second coord) (* wall-width y-direc))]]
+        newcoord [(+ col x-direc) 
+                  (+ row y-direc)]]
 	  (if (and (not (and (zero? x-direc) (zero? y-direc))) 
              (> (- time @last-moved) min-millis-per-move)
              (not (is-in-wall? newcoord level)))
      (do
       (compare-and-set! last-moved @last-moved (current-time))
 	     newcoord)
-	    coord)))
+	    [col row])))
 
 (defn update [game input frame window]
   (assoc game :level (update-touched (game :level) (game :playerpos))

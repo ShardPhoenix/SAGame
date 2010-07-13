@@ -13,6 +13,9 @@
             :black (Color. 0 0 0)
             :background (Color. 255 255 255)})
 
+(defn coord-to-pix [[col row]]
+  [(+ maze-left-margin (* col wall-width)) (+  maze-top-margin (* row wall-width))])
+
 (defn render-background [#^Graphics gfx] 
     (.setColor gfx (color :background))
     (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
@@ -47,6 +50,10 @@
   (.setColor gfx (color :brown))
   (.fillRect gfx (first (game :minotaurpos)) (second (game :minotaurpos)) wall-width wall-width))
 
+(defn render-square [#^Graphics gfx thecolor [x y]]
+  (.setColor gfx (color thecolor))
+  (.fillRect gfx x y wall-width wall-width)) 
+
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
         #^Graphics gfx (.createGraphics image)
@@ -55,8 +62,8 @@
       (if debug
         (render-debug gfx game frame))
       (render-level gfx (game :level))
-      (render-player gfx game)
-      (render-minotaur gfx game)
+      (render-square gfx :blue (coord-to-pix (game :playerpos)))
+      (render-square gfx :brown (coord-to-pix (game :minotaurpos)))
       (.drawImage gfx2 image 0 0 window)))
 
 (defn configure-gui [#^JFrame window #^JPanel panel]
