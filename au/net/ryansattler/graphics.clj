@@ -22,10 +22,8 @@
 
 (defn render-debug [#^Graphics gfx game frame]
   (println frame)
-  (.setColor gfx (color :black))
-  (.drawString gfx (str "player at " (game :playerx) " " (game :playery)) 75 125)
-  (if (game :in-wall-piece)
-    (.drawString gfx (str "Collided at " (game :in-wall-piece) :x) ", " ((game :in-wall-piece) :y) 50 100)))
+  (.setColor gfx (color :black)))
+  ;(.drawString gfx (str "treasures gained: " (game :treasures-gained) 75 125)))
 
 (defn render-level [#^Graphics gfx level]
   (doseq [maze-cell level]
@@ -37,22 +35,18 @@
           (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
         (do
           (cond  
-                (:treasure maze-cell) (.setColor gfx (color :gold))
-                (:touched maze-cell)  (.setColor gfx (color :green))
-            :else (.setColor gfx (color :background)))
+              (:treasure maze-cell) (.setColor gfx (color :gold))
+              (:touched maze-cell)  (.setColor gfx (color :green))
+              :else (.setColor gfx (color :background)))
           (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
-
-(defn render-player [#^Graphics gfx game]
-  (.setColor gfx (color :blue))
-  (.fillRect gfx (first (game :playerpos)) (second (game :playerpos)) wall-width wall-width))
-
-(defn render-minotaur [#^Graphics gfx game]
-  (.setColor gfx (color :brown))
-  (.fillRect gfx (first (game :minotaurpos)) (second (game :minotaurpos)) wall-width wall-width))
 
 (defn render-square [#^Graphics gfx thecolor [x y]]
   (.setColor gfx (color thecolor))
-  (.fillRect gfx x y wall-width wall-width)) 
+  (.fillRect gfx x y wall-width wall-width))
+
+(defn render-treasures [gfx treasures]
+  (dotimes [n treasures]
+    (render-square gfx :gold (coord-to-pix [(+ (* 1.5 n) -10) -5]))))
 
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
@@ -64,6 +58,7 @@
       (render-level gfx (game :level))
       (render-square gfx :blue (coord-to-pix (game :playerpos)))
       (render-square gfx :brown (coord-to-pix (game :minotaurpos)))
+      (render-treasures gfx (game :treasures-gained)) 
       (.drawImage gfx2 image 0 0 window)))
 
 (defn configure-gui [#^JFrame window #^JPanel panel]

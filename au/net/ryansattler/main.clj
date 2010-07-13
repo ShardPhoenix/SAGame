@@ -49,23 +49,28 @@
 	  ;change to row/col and calc this when rendering?
 	  :playerpos [1 1]
 	  :minotaurpos (find-minotaur level)
-	  :collided-piece nil}))
+    :treasures-gained 0}))
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
 
 (def last-moved (atom (current-time)))
 
-;fix weird collision requiring inc?
 (defn in-piece? [piece [col row]]
     (and (= (:col piece) col)
          (= (:row piece) row))) 
 
 (defn update-touched [level coord]
   (map #(if (in-piece? % coord)
-           (assoc % :touched true)
+           (assoc % 
+              :touched true
+              :treasure false)
            %) 
     level))
+
+(defn update-treasure [level coord treasures-gained]
+ (let [treasures-touched (count (filter #(and (:treasure %) (in-piece? % coord)) level))]
+    (+ treasures-touched treasures-gained)))
 
 (defn is-in-wall? [coord level]
   (pos? (count (filter true? (map #(and (:wall %) (in-piece? % coord)) level)))))
@@ -84,7 +89,8 @@
 	    [col row])))
 
 (defn update [game input frame window]
-  (assoc game :level (update-touched (game :level) (game :playerpos))
+  (assoc game :treasures-gained (update-treasure (game :level) (game :playerpos) (game :treasures-gained))
+              :level (update-touched (game :level) (game :playerpos))
               :playerpos (try-move (game :playerpos) (input :x-direc) (input :y-direc) (game :level))))
 
 (defn get-input [keys-set] 
