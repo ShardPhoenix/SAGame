@@ -8,9 +8,11 @@
 (def window-height 768)
 
 (def wall-width 15)
-(def maze-size 35) ;odd number
+(def maze-size 31) ;odd number
 (def maze-top-margin 150)
 (def maze-left-margin 300)
 
 (def min-millis-per-move 100)
+
+(def num-treasures 4) 
 

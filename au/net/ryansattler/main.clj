@@ -38,10 +38,21 @@
   {:score 0
    :level-on 0})
 
-(def initial-gamestate {:levelnum 1
-                        :level (gen-level)
-                        :playerpos [(+ maze-left-margin wall-width) (+  maze-top-margin wall-width)]
-                        :collided-piece nil})
+(defn coord-to-pix [[col row]]
+  [(+ maze-left-margin (* col wall-width)) (+  maze-top-margin (* row wall-width))])
+
+(defn find-minotaur [level]
+  (let [minotaur-start (first (filter #(true? (:minotaur-start %)) level))]
+    [(:col minotaur-start) (:row minotaur-start)]))
+
+(defn initial-gamestate [] 
+  (let [level (gen-level)]
+	  {:levelnum 1
+	  :level level
+	  ;change to row/col and calc this when rendering?
+	  :playerpos (coord-to-pix [1 1])
+	  :minotaurpos (coord-to-pix (find-minotaur level))
+	  :collided-piece nil}))
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -107,7 +118,7 @@
       keys-set-atom (atom #{}) ;set of keyboard keys currently being held down by player
       panel (create-panel window-width window-height keys-set-atom)]
   (configure-gui window panel)
-  (loop [gamestate initial-gamestate
+  (loop [gamestate (initial-gamestate)
          frame 1]
     (let [start-time (current-time)
           input (get-input @keys-set-atom)
