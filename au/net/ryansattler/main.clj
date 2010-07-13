@@ -6,15 +6,12 @@
 ;- hardcore modes: 1 hit/life, narrower corridors, low time-limit
 ;- sounds/music
 ;- start, pause buttons
-;- click-and-drag?
-;- distributable package and/or applet
+;- distributable package and/or applet!!!!!!!!!!
 ;- tests
-;- keyboard driven game with "you can't escape the minotaur" instead?!
 ;- smooth animation?
 ;- "theseus and minotaur", treasures, no move through walls, touching walls (treasures, etc) alerts minotaur?
-;- diff. music after minotaur is activiated
+;- diff. music after minotaur is activated
 ;- goal: grab all treasures and escape, don't get caught by minotaur
-;- don't allow walking through walls
 ;- time limit after which minotaur goes straight for you?
 ;- "you can't bump the walls" or "you can't escape the minotaur" or..?
 
@@ -34,22 +31,18 @@
 (if debug 
   (set! *warn-on-reflection* true))
 
-(def player
-  {:score 0
-   :level-on 0})
-
 (defn find-minotaur [level]
   (let [minotaur-start (first (filter #(true? (:minotaur-start %)) level))]
     [(:col minotaur-start) (:row minotaur-start)]))
 
 (defn initial-gamestate [] 
   (let [level (gen-level)]
-	  {:levelnum 1
-	  :level level
-	  ;change to row/col and calc this when rendering?
-	  :playerpos [1 1]
-	  :minotaurpos (find-minotaur level)
-    :treasures-gained 0}))
+	  {:score 0
+     :levelnum 1
+	   :level level
+	   :playerpos [1 1]
+	   :minotaurpos (find-minotaur level)
+     :treasures-gained 0}))
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -89,9 +82,10 @@
 	    [col row])))
 
 (defn update [game input frame window]
-  (assoc game :treasures-gained (update-treasure (game :level) (game :playerpos) (game :treasures-gained))
-              :level (update-touched (game :level) (game :playerpos))
-              :playerpos (try-move (game :playerpos) (input :x-direc) (input :y-direc) (game :level))))
+ (let [coord (game :playerpos)]
+  (assoc game :treasures-gained (update-treasure (game :level) coord (game :treasures-gained))
+              :level (update-touched (game :level) coord)
+              :playerpos (try-move coord (input :x-direc) (input :y-direc) (game :level)))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)

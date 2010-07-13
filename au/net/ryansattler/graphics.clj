@@ -23,7 +23,6 @@
 (defn render-debug [#^Graphics gfx game frame]
   (println frame)
   (.setColor gfx (color :black)))
-  ;(.drawString gfx (str "treasures gained: " (game :treasures-gained) 75 125)))
 
 (defn render-level [#^Graphics gfx level]
   (doseq [maze-cell level]
