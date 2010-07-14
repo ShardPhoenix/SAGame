@@ -11,6 +11,7 @@
     wall?
     false
     false
+    false
     false))
 
 
@@ -65,26 +66,19 @@
 (defn spaces [mazepieces]
   (filter #(not (or (zero? (rem (:col %) 2)) (zero? (rem (:row %) 2)))) mazepieces))
 
-(defn add-minotaurs [n maze]
+(defn set-random-flags [n flagtype maze]
     (let [spaces (spaces maze)
-        treasure-spaces (take n (shuffle spaces))]
+          relevant-spaces (take n (shuffle spaces))]
        (for [x maze] 
-         (if (some #{x} treasure-spaces) 
-           (assoc x :minotaur-start true)
-           x))))
-
-;maybe better as recursive fn
-(defn add-treasures [n maze]
-  (let [spaces (spaces maze)
-        treasure-spaces (take n (shuffle spaces))]
-       (for [x maze] 
-         (if (some #{x} treasure-spaces) 
-           (assoc x :treasure true)
+         (if (some #{x} relevant-spaces) 
+           (assoc x flagtype true)
            x))))
 
 ;return just the values (actual maze-cells) for now. Might use whole map later if needed.
 (defn gen-level []
   (let [maze initial-maze
         bottom-right [(- maze-size 2) (- maze-size 2)]]
-    (add-minotaurs 1 (add-treasures num-treasures (vals (gen-level2 maze [] bottom-right))))))
+    (set-random-flags 1 :minotaur-start 
+      (set-random-flags num-treasures :treasure 
+        (vals (gen-level2 maze [] bottom-right))))))
 

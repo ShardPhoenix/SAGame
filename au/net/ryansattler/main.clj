@@ -69,6 +69,7 @@
   (pos? (count (filter true? (map #(and (:wall %) (in-piece? % coord)) level)))))
 
 ;add wall-bumping somehow - multiple returns?
+;put time in game map rather than use atom
 (defn try-move [[col row] x-direc y-direc level]
   (let [time (current-time)
         newcoord [(+ col x-direc) 
@@ -82,10 +83,11 @@
 	    [col row])))
 
 (defn update [game input frame window]
- (let [coord (game :playerpos)]
-  (assoc game :treasures-gained (update-treasure (game :level) coord (game :treasures-gained))
-              :level (update-touched (game :level) coord)
-              :playerpos (try-move coord (input :x-direc) (input :y-direc) (game :level)))))
+ (let [coord (game :playerpos)
+       level (game :level)]
+  (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
+              :level (update-touched level coord)
+              :playerpos (try-move coord (input :x-direc) (input :y-direc) level))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)

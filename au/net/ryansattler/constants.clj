@@ -12,7 +12,7 @@
 (def maze-top-margin 150)
 (def maze-left-margin 300)
 
-(def min-millis-per-move 100)
+(def min-millis-per-move 66)
 
 (def num-treasures 4) 
 
