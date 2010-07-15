@@ -14,6 +14,7 @@
 ;- goal: grab all treasures and escape, don't get caught by minotaur
 ;- time limit after which minotaur goes straight for you?
 ;- "you can't bump the walls" or "you can't escape the minotaur" or..?
+;- move to clojure 1.2 beta
 
 (ns au.net.ryansattler.main
   (:import
@@ -84,15 +85,14 @@
           closed (conj closed x)
           neighbours (filter #(not (closed %)) (get-neighbours maze x))
           tentative-g (+ (g x) 1)
-          good-neighbours (filter #(not (nil? %)) 
-                (for [y neighbours] (if (or (not (open y)) (< tentative-g (g y))) y)))]
+          good-neighbours (filter #(or (not (open %)) (< tentative-g (g %))) neighbours)]
       (if (seq good-neighbours)
          (let 
 	          [open (apply conj open good-neighbours)
 	          came-from (apply assoc came-from (concat (interpose x good-neighbours) [x]))
 	          g (apply assoc g (concat (interpose tentative-g good-neighbours) [tentative-g]))
-	          h (apply assoc h (interleave good-neighbours (for [n good-neighbours] (manhattan-dist n end))))
-	          f (apply assoc f (interleave good-neighbours (for [n good-neighbours] (+ (g n) (h n)))))]
+	          h (apply assoc h (interleave good-neighbours (map #(manhattan-dist % end) good-neighbours)))
+	          f (apply assoc f (interleave good-neighbours (map #(+ (g %) (h %)) good-neighbours)))]
           (recur maze end closed open g h f came-from))
         (recur maze end closed open g h f came-from)))))))
 
