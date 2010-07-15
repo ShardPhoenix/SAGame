@@ -14,7 +14,6 @@
     false
     false))
 
-
 ;initial maze with checkerboard pattern of wall/not-wall (outside is all wall).
 ;return is a map from [row col] vectors (eg [2 3]) to the maze-cell struct at that position.
 (def initial-maze
@@ -35,13 +34,11 @@
     (java.util.Collections/shuffle al)
     (clojure.lang.RT/vector (.toArray al))))
 
-(defn get-unvisited-neighbour-coords [maze coord]
-  (let [row     (first coord)
-        col     (last coord)
-        topc    [(+ row 2) col]
-        bottomc [(- row 2) col]
-        leftc   [row (- col 2)]
-        rightc  [row (+ 2 col)]
+(defn get-unvisited-neighbour-coords [maze [col row]]
+  (let [topc    [(+ col 2) row]
+        bottomc [(- col 2) row]
+        leftc   [col (- row 2)]
+        rightc  [col (+ 2 row)]
         neighbours [topc bottomc leftc rightc]]
     (filter #(and (maze %) (not (:visited (maze %)))) neighbours)))
 

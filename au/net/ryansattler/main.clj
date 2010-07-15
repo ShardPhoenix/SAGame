@@ -155,8 +155,7 @@
               :level (update-touched level coord)
               :playerpos (try-move coord (input :x-direc) (input :y-direc) level)
               :route (get-route (game :maze) (game :minotaurpos) coord)
-              :minotaurpos (update-minotaur (:route game) (:minotaurpos game) level)
-)))
+              :minotaurpos (update-minotaur (:route game) (:minotaurpos game) level))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
