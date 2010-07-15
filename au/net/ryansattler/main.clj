@@ -40,9 +40,77 @@
 	  {:score 0
      :levelnum 1
 	   :level level
+     :maze (zipmap (for [cell level] [(:col cell) (:row cell)]) level) 
 	   :playerpos [1 1]
 	   :minotaurpos (find-minotaur level)
-     :treasures-gained 0}))
+     :treasures-gained 0
+     :route []}))
+
+(defn get-neighbours [maze [col row]]
+  (let [neighbours [(maze [(inc col) row])
+                    (maze [(inc col) (inc row)])
+                    (maze [col (inc row)])
+                    (maze [(dec col) (inc row)])
+                    (maze [(dec col) (dec row)])
+                    (maze [col (dec row)])
+                    (maze [(dec col) row])
+                    (maze [(inc col) (dec row)])]]
+    (for [cell (filter #(and (not (nil? %)) (not (:wall %))) neighbours)]
+        [(:col cell) (:row cell)])))
+
+(defn abs [x]
+  (if (< x 0) (- x) x)) 
+
+(defn manhattan-dist [[a b] [x y]]
+  (+ (abs (- a x)) (abs (- b y))))
+
+(defn lowest-f [open f]
+  (last (first 
+    (sort #(- (first %1) (first %2)) 
+      (for [cell open] [(f cell) cell])))))
+
+(defn reconstruct-path [came-from current]
+  (if (came-from current)
+    (concat (reconstruct-path came-from (came-from current)) [current])
+    [current])) 
+
+(defn get-route2 [maze end closed open g h f came-from]
+  (if (empty? open) nil
+  (let [x (lowest-f open f)]
+     ;(println "x is" x) 
+    (if (= x end)
+      (do ;(println "getting path from " came-from)
+      (reconstruct-path came-from end))
+    (let [open (disj open x)
+          closed (conj closed x)
+          neighbours (filter #(not (closed %)) (get-neighbours maze x))
+          tentative-g (+ (g x) 1)
+          good-neighbours (filter #(not (nil? %)) 
+                (for [y neighbours] (if (or (not (open y)) (< tentative-g (g y))) y)))]
+      ;(println "tentative g:" tentative-g) 
+      ;(println "open:" open) 
+      ;(println "neigh: " neighbours) 
+      ;(println "good:" good-neighbours) 
+      (if (seq good-neighbours)
+         (let 
+          [open (apply conj open good-neighbours)
+          came-from (apply assoc came-from (concat (interpose x good-neighbours) [x]))
+          g (apply assoc g (concat (interpose tentative-g good-neighbours) [tentative-g]))
+          h (apply assoc h (interleave good-neighbours (for [n good-neighbours] (manhattan-dist n end))))
+          f (apply assoc f (interleave good-neighbours (for [n good-neighbours] (+ (g n) (h n)))))]
+      ;(println "came-from" came-from) 
+      ;(println "closed" closed) 
+      ;(println "open" open)
+      ;(println "g" g)
+      ;(println "h" h) 
+      ;(println "f" f)
+      ;(println) 
+        (recur maze end closed open g h f came-from))
+        (recur maze end closed open g h f came-from)))))))
+
+(defn get-route [maze start end]
+  (get-route2 maze end #{} #{start} {start 0} 
+        {start (manhattan-dist start end)} {start (manhattan-dist start end)} {}))
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -87,7 +155,8 @@
        level (game :level)]
   (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
               :level (update-touched level coord)
-              :playerpos (try-move coord (input :x-direc) (input :y-direc) level))))
+              :playerpos (try-move coord (input :x-direc) (input :y-direc) level)
+              :route (get-route (game :maze) (game :minotaurpos) coord))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)

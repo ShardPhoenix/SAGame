@@ -21,7 +21,7 @@
     (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
 
 (defn render-debug [#^Graphics gfx game frame]
-  (println frame)
+  ;(println frame)
   (.setColor gfx (color :black)))
 
 (defn render-level [#^Graphics gfx level]
@@ -47,6 +47,10 @@
   (dotimes [n treasures]
     (render-square gfx :gold (coord-to-pix [(+ (* 1.5 n) -10) -5]))))
 
+(defn render-route [gfx route]
+  (doseq [coord route]
+    (render-square gfx :red (coord-to-pix coord)))) 
+
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
         #^Graphics gfx (.createGraphics image)
@@ -55,6 +59,7 @@
       (if debug
         (render-debug gfx game frame))
       (render-level gfx (game :level))
+      (render-route gfx (game :route)) 
       (render-square gfx :blue (coord-to-pix (game :playerpos)))
       (render-square gfx :brown (coord-to-pix (game :minotaurpos)))
       (render-treasures gfx (game :treasures-gained)) 
