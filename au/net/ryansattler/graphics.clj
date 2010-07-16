@@ -60,8 +60,8 @@
         (render-debug gfx game frame))
       (render-level gfx (game :level))
       (render-route gfx (game :route)) 
-      (render-square gfx :blue (coord-to-pix (game :playerpos)))
-      (render-square gfx :brown (coord-to-pix (game :minotaurpos)))
+      (render-square gfx :blue (coord-to-pix ((game :player) :coord)))
+      (render-square gfx :brown (coord-to-pix (:coord (game :minotaur))))
       (render-treasures gfx (game :treasures-gained)) 
       (.drawImage gfx2 image 0 0 window)))
 

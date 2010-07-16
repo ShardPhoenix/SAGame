@@ -14,7 +14,7 @@
 ;- goal: grab all treasures and escape, don't get caught by minotaur
 ;- time limit after which minotaur goes straight for you?
 ;- "you can't bump the walls" or "you can't escape the minotaur" or..?
-;- move to clojure 1.2 beta
+;- move to clojure 1.2 beta?
 
 (ns au.net.ryansattler.main
   (:import
@@ -32,9 +32,20 @@
 (if debug 
   (set! *warn-on-reflection* true))
 
+(defn current-time []
+  (/ (java.lang.System/nanoTime) 1000000))
+
 (defn find-minotaur [level]
   (let [minotaur-start (first (filter #(true? (:minotaur-start %)) level))]
     [(:col minotaur-start) (:row minotaur-start)]))
+
+(defstruct minotaur :coord :route :last-moved)
+(defn make-minotaur [coord]
+  (struct minotaur coord [coord] (current-time))) 
+
+(defstruct player :coord :last-moved)
+(defn make-player [coord]
+  (struct player coord (current-time))) 
 
 (defn initial-gamestate [] 
   (let [level (gen-level)
@@ -43,20 +54,20 @@
      :levelnum 1
 	   :level level
      :maze (zipmap (for [cell level] [(:col cell) (:row cell)]) level) 
-	   :playerpos [1 1]
-	   :minotaurpos minotaurpos
-     :treasures-gained 0
-     :route [minotaurpos]}))
+	   :minotaur (make-minotaur minotaurpos)
+     :player (make-player [1 1]) 
+     :treasures-gained 0}))
 
 (defn get-neighbours [maze [col row]]
-  (let [neighbours [(maze [(inc col) row])
-                    (maze [(inc col) (inc row)])
+  (let [neighbours [;diagonals commented out for now - smoother look with only orthogonal movement
+                    ;(maze [(inc col) (inc row)])
+                    ;(maze [(inc col) (dec row)])
+                    ;(maze [(dec col) (inc row)])
+                    ;(maze [(dec col) (dec row)])
+                    (maze [(inc col) row])
                     (maze [col (inc row)])
-                    (maze [(dec col) (inc row)])
-                    (maze [(dec col) (dec row)])
                     (maze [col (dec row)])
-                    (maze [(dec col) row])
-                    (maze [(inc col) (dec row)])]]
+                    (maze [(dec col) row])]]
     (for [cell (filter #(and (not (nil? %)) (not (:wall %))) neighbours)]
         [(:col cell) (:row cell)])))
 
@@ -66,10 +77,17 @@
 (defn manhattan-dist [[a b] [x y]]
   (+ (abs (- a x)) (abs (- b y))))
 
+(defn lowest-f2 [open f best-f best-so-far]
+  (let [current (first open)
+         currentf (f current)]
+    (if (not (empty? open))
+      (if (< currentf best-f)
+        (recur (disj open current) f currentf current)
+        (recur (disj open current) f best-f best-so-far))
+      best-so-far)))
+
 (defn lowest-f [open f]
-  (last (first 
-    (sort #(- (first %1) (first %2)) 
-      (for [cell open] [(f cell) cell])))))
+  (lowest-f2 open f (f (first open)) (first open))) 
 
 (defn reconstruct-path [came-from current]
   (if (came-from current)
@@ -100,11 +118,6 @@
   (get-route2 maze end #{} #{start} {start 0} 
         {start (manhattan-dist start end)} {start (manhattan-dist start end)} {}))
 
-(defn current-time []
-  (/ (java.lang.System/nanoTime) 1000000))
-
-(def last-moved (atom (current-time)))
-
 (defn in-piece? [piece [col row]]
     (and (= (:col piece) col)
          (= (:row piece) row))) 
@@ -126,36 +139,42 @@
 
 ;add wall-bumping somehow - multiple returns?
 ;put time in game map rather than use atom
-(defn try-move [[col row] x-direc y-direc level]
-  (let [time (current-time)
-        newcoord [(+ col x-direc) 
-                  (+ row y-direc)]]
+(defn try-move [[col row] x-direc y-direc level last-moved millis-per-move]
+  (let [thetime (current-time)
+        newcoord [(+ col x-direc) (+ row y-direc)]]
 	  (if (and (not (and (zero? x-direc) (zero? y-direc))) 
-             (> (- time @last-moved) min-millis-per-move)
+             (>= (- thetime last-moved) millis-per-move)
              (not (is-in-wall? newcoord level)))
-     (do
-      (compare-and-set! last-moved @last-moved (current-time))
-	     newcoord)
+	     newcoord
 	    [col row])))
 
-(defn update-minotaur [route [col row] level]
-  (if (< (count route) 2)
-      [col row] 
-  (let [nextmove (second route)
-        x-direc (- (first nextmove) col)
-        y-direc (- (second nextmove) row )]
-       (println "min x y" x-direc y-direc) 
-      ;can't use this properly right now - need to fix timer so doesn't clash with player 
-      (try-move [col row] x-direc y-direc level))))
+(defn update-minotaur [minotaur maze level target]
+  (let [route (:route minotaur)
+        [col row] (:coord minotaur)
+        moved (:last-moved minotaur)
+        minotaur (assoc minotaur :route (get-route maze [col row] target))]
+  (if (> (count (:route minotaur)) 1)
+      (let [nextmove (second (:route minotaur))
+            x-direc (- (first nextmove) col)
+            y-direc (- (second nextmove) row)
+            newcoord (try-move [col row] x-direc y-direc level moved minotaur-millis-per-move)]
+	      minotaur (assoc minotaur :route (get-route maze [row col] target)
+	                               :coord newcoord
+	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
+      minotaur)))
+
+(defn update-player [player input level]
+ (let [newcoord (try-move (player :coord) (input :x-direc) (input :y-direc) level (player :last-moved) player-millis-per-move)]
+  (assoc player :coord newcoord
+                :last-moved (if-not (= newcoord (player :coord)) (current-time) (player :last-moved)))))
 
 (defn update [game input frame window]
- (let [coord (game :playerpos)
-       level (game :level)]
+ (let [level (game :level)
+       coord ((game :player) :coord)]
   (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
               :level (update-touched level coord)
-              :playerpos (try-move coord (input :x-direc) (input :y-direc) level)
-              :route (get-route (game :maze) (game :minotaurpos) coord)
-              :minotaurpos (update-minotaur (:route game) (:minotaurpos game) level))))
+              :player (update-player (game :player) input level)
+              :minotaur (update-minotaur (game :minotaur) (game :maze) (game :level) coord))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
