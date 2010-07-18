@@ -1,8 +1,8 @@
 (ns au.net.ryansattler.mazegen
   (:use au.net.ryansattler.constants))
 
-(defstruct maze-cell :col :row :x :y :wall :visited :touched :treasure :minotaur-start)
-(defn make-maze-cell [col row wall?] 
+(defstruct maze-cell :col :row :x :y :wall :visited :touched :treasure :minotaur-start :exit)
+(defn make-maze-cell [col row wall? exit?] 
   (struct maze-cell 
     col 
     row 
@@ -14,13 +14,23 @@
     false
     false))
 
+(defn is-exit? [col row]
+  (and (= col (- maze-size 2)) (= row (- maze-size 1))))
+
+(defn starts-as-wall? [col row]
+  (and (not (is-exit? col row)) 
+       (or (zero? (rem col 2)) (zero? (rem row 2)))))
+
 ;initial maze with checkerboard pattern of wall/not-wall (outside is all wall).
 ;return is a map from [row col] vectors (eg [2 3]) to the maze-cell struct at that position.
 (def initial-maze
   (zipmap
-    (for [x (range maze-size) y (range maze-size)] [x y])
-	  (for [x (range maze-size) y (range maze-size)] 
-	    (make-maze-cell x y (or (zero? (rem x 2)) (zero? (rem y 2)))))))
+    (for [col (range maze-size) row (range maze-size)] [col row])
+	  (for [col (range maze-size) row (range maze-size)] 
+	    (make-maze-cell col 
+                      row 
+                      (starts-as-wall? col row)
+                      (is-exit? col row)))))
 
 ;source copied from clojure 1.2 as this is still on 1.1
 (defn rand-nth [coll]
@@ -63,8 +73,8 @@
 (defn spaces [mazepieces]
   (filter #(not (or (zero? (rem (:col %) 2)) (zero? (rem (:row %) 2)))) mazepieces))
 
-(defn set-random-flags [n flagtype maze]
-    (let [spaces (spaces maze)
+(defn set-random-flags [n flagtype filter-fn maze]
+    (let [spaces (filter-fn (spaces maze))
           relevant-spaces (take n (shuffle spaces))]
        (for [x maze] 
          (if (some #{x} relevant-spaces) 
@@ -75,7 +85,9 @@
 (defn gen-level []
   (let [maze initial-maze
         bottom-right [(- maze-size 2) (- maze-size 2)]]
-    (set-random-flags 1 :minotaur-start 
-      (set-random-flags num-treasures :treasure 
+    (set-random-flags 1 :minotaur-start
+            ;make sure minotaur starts in bottom right of maze
+            (fn [spaces] (filter #(and (> (:col %) (/ maze-size 2)) (> (:row %) (/ maze-size 2))) spaces))
+      (set-random-flags num-treasures :treasure (fn [spaces] spaces)
         (vals (gen-level2 maze [] bottom-right))))))
 

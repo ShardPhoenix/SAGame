@@ -15,6 +15,13 @@
 ;- time limit after which minotaur goes straight for you?
 ;- "you can't bump the walls" or "you can't escape the minotaur" or..?
 ;- move to clojure 1.2 beta?
+;- instructions on left side of screen
+
+;- gameplay ideas: minotaur touch only damages, but gets faster ("angrier") with each treasure taken
+;- have to exit at start instead?
+;- distrbute treasures biasedly based on distance from start (and exit if applicable)
+;- minotaur, when altered (eg pick up treasure), goes there. otherwise follows player if in line of sight, otherwise goes back to start
+;- minotaur always follows player when maximally pissed?
 
 (ns au.net.ryansattler.main
   (:import
@@ -53,11 +60,13 @@
         minotaurpos (find-minotaur level)]
 	  {:score 0
      :levelnum 1
+     :won false
 	   :level level
      :maze (zipmap (for [cell level] [(:col cell) (:row cell)]) level) 
 	   :minotaur (make-minotaur minotaurpos)
      :player (make-player [1 1]) 
-     :treasures-gained 0}))
+     :treasures-gained 0
+     :total-treasures 0}))
 
 (defn in-piece? [piece [col row]]
     (and (= (:col piece) col)
@@ -98,7 +107,7 @@
             x-direc (- (first nextmove) col)
             y-direc (- (second nextmove) row)
             newcoord (try-move [col row] x-direc y-direc level moved minotaur-millis-per-move)]
-	      minotaur (assoc minotaur :route (get-route maze [row col] target)
+	      minotaur (assoc minotaur :route (get-route maze [col row] target)
 	                               :coord newcoord
 	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
       minotaur)))
@@ -108,13 +117,18 @@
   (assoc player :coord newcoord
                 :last-moved (if-not (= newcoord (player :coord)) (current-time) (player :last-moved)))))
 
+(defn update-victory [game]
+ (let [[col row] (:coord (game :player))]
+  (or (>= col maze-size) (>= row maze-size))))
+
 (defn update [game input frame window]
  (let [level (game :level)
        coord ((game :player) :coord)]
   (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
               :level (update-touched level coord)
               :player (update-player (game :player) input level)
-              :minotaur (update-minotaur (game :minotaur) (game :maze) (game :level) coord))))
+              :minotaur (update-minotaur (game :minotaur) (game :maze) (game :level) coord)
+              :won (update-victory game))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
@@ -123,6 +137,15 @@
         down (if (keys-set VK_DOWN) 1 0)]
         {:x-direc (+ left right) 
          :y-direc (+ up down)}))
+
+(defn display-victory-screen [game]
+  (println "you escaped! (with" (:treasures-gained game) "treasures)"))
+
+(defn new-level [game]
+	(let [gamestate (initial-gamestate)]
+	  (assoc gamestate :total-treasures (+ (:treasures-gained game) (:total-treasures game))
+                     :score (+ (:score game) (* (:treasures-gained game) (:treasures-gained game)))
+	                   :levelnum (inc (:levelnum game))))) 
 
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
@@ -141,11 +164,15 @@
          frame 1]
     (let [start-time (current-time)
           input (get-input @keys-set-atom)
-          updated-gamestate (update gamestate input frame window)]
+          gamestate (update gamestate input frame window)]
          (render gamestate window frame)
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
       (if debug
         (println (double render-time)))
       (java.lang.Thread/sleep wait-time))
-    (recur updated-gamestate (inc frame)))))
+     (if (:won gamestate)
+      (do 
+        (display-victory-screen gamestate)
+        (recur (new-level gamestate) (inc frame)))
+    (recur gamestate (inc frame))))))

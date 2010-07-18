@@ -20,10 +20,6 @@
     (.setColor gfx (color :background))
     (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
 
-(defn render-debug [#^Graphics gfx game frame]
-  ;(println frame)
-  (.setColor gfx (color :black)))
-
 (defn render-level [#^Graphics gfx level]
   (doseq [maze-cell level]
     (if (:wall maze-cell)
@@ -49,7 +45,16 @@
 
 (defn render-route [gfx route]
   (doseq [coord route]
-    (render-square gfx :red (coord-to-pix coord)))) 
+    (render-square gfx :red (coord-to-pix coord))))
+
+(defn render-scores [gfx game]
+  (.setColor gfx (color :black))
+  (.drawString gfx (str "Level " (:levelnum game)) 75 75)
+  (.drawString gfx (str "Total treasures: " (:total-treasures game)) 75 100)
+  (.drawString gfx (str "Total score: " (:score game)) 75 125 ))
+
+(defn render-debug [#^Graphics gfx game frame]
+  (render-route gfx (:route (game :minotaur))))
 
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
@@ -59,10 +64,10 @@
       (if debug
         (render-debug gfx game frame))
       (render-level gfx (game :level))
-      (render-route gfx (game :route)) 
       (render-square gfx :blue (coord-to-pix ((game :player) :coord)))
       (render-square gfx :brown (coord-to-pix (:coord (game :minotaur))))
-      (render-treasures gfx (game :treasures-gained)) 
+      (render-treasures gfx (game :treasures-gained))
+      (render-scores gfx game) 
       (.drawImage gfx2 image 0 0 window)))
 
 (defn configure-gui [#^JFrame window #^JPanel panel]
