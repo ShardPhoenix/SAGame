@@ -7,7 +7,7 @@
 (def window-width 1024)
 (def window-height 768)
 
-(def wall-width 15)
+(def wall-width 18)
 (def maze-size 23) ;odd number
 (def maze-top-margin 150)
 (def maze-left-margin 300)

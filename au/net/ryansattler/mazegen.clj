@@ -74,12 +74,22 @@
   (filter #(not (or (zero? (rem (:col %) 2)) (zero? (rem (:row %) 2)))) mazepieces))
 
 (defn set-random-flags [n flagtype filter-fn maze]
-    (let [spaces (filter-fn (spaces maze))
+    (let [spaces (filter-fn maze)
           relevant-spaces (take n (shuffle spaces))]
        (for [x maze] 
          (if (some #{x} relevant-spaces) 
            (assoc x flagtype true)
            x))))
+
+(defn has-3-walls [mazepiece maze]
+  (let [col (:col mazepiece)
+        row (:row mazepiece)
+        neighbours [[(inc col) row] [(dec col) row] [col (inc row)] [col (dec row)]]]
+    (>= (count (filter #(and (some #{[(:col %) (:row %)]} neighbours) (:wall %)) maze)) 3)))
+
+(defn treasure-spaces [maze]
+  (filter #(and (not (:wall %))
+                (has-3-walls % maze)) maze))
 
 ;return just the values (actual maze-cells) for now. Might use whole map later if needed.
 (defn gen-level []
@@ -88,6 +98,6 @@
     (set-random-flags 1 :minotaur-start
             ;make sure minotaur starts in bottom right of maze
             (fn [spaces] (filter #(and (> (:col %) (/ maze-size 2)) (> (:row %) (/ maze-size 2))) spaces))
-      (set-random-flags num-treasures :treasure (fn [spaces] spaces)
+      (set-random-flags num-treasures :treasure (fn [x] (treasure-spaces x))
         (vals (gen-level2 maze [] bottom-right))))))
 

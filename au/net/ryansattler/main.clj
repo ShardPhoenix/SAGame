@@ -22,6 +22,7 @@
 ;- distrbute treasures biasedly based on distance from start (and exit if applicable)
 ;- minotaur, when altered (eg pick up treasure), goes there. otherwise follows player if in line of sight, otherwise goes back to start
 ;- minotaur always follows player when maximally pissed?
+;- increase branching factor of maze
 
 (ns au.net.ryansattler.main
   (:import
