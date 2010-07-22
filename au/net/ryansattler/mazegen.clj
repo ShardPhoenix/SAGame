@@ -89,6 +89,7 @@
 
 (defn treasure-spaces [maze]
   (filter #(and (not (:wall %))
+                (not (= [(:col %) (:row %)] [1 1])) ;not on start pos 
                 (has-3-walls % maze)) maze))
 
 ;return just the values (actual maze-cells) for now. Might use whole map later if needed.

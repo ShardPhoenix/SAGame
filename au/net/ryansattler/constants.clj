@@ -15,5 +15,5 @@
 (def player-millis-per-move 66)
 (def minotaur-millis-per-move 200)
 
-(def num-treasures 4) 
+(def num-treasures 6) 
 

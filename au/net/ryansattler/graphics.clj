@@ -8,7 +8,7 @@
 (def color {:blue (Color. 0 61 245)
             :red  (Color. 245 61 0)
             :green(Color. 61 245 0)
-            :gold (Color. 255 255 61)
+            :gold (Color. 255 255 0)
             :brown (Color. 102 51 0) 
             :black (Color. 0 0 0)
             :background (Color. 255 255 255)})

@@ -6,11 +6,10 @@
 ;- hardcore modes: 1 hit/life, narrower corridors, low time-limit
 ;- sounds/music
 ;- start, pause buttons
-;- distributable package and/or applet!!!!!!!!!!
 ;- tests
 ;- smooth animation?
-;- "theseus and minotaur", treasures, no move through walls, touching walls (treasures, etc) alerts minotaur?
-;- diff. music after minotaur is activated
+;- "theseus and minotaur"
+;- diff. music after minotaur is activated (or player is in trouble etc)
 ;- goal: grab all treasures and escape, don't get caught by minotaur
 ;- time limit after which minotaur goes straight for you?
 ;- "you can't bump the walls" or "you can't escape the minotaur" or..?
@@ -21,8 +20,13 @@
 ;- have to exit at start instead?
 ;- distrbute treasures biasedly based on distance from start (and exit if applicable)
 ;- minotaur, when altered (eg pick up treasure), goes there. otherwise follows player if in line of sight, otherwise goes back to start
-;- minotaur always follows player when maximally pissed?
-;- increase branching factor of maze
+;- minotaur always follows player when maximally angry?
+;- increase branching factor of maze (maybe remove random walls)
+;- minotaur gets angry based on treasures, time, or both
+;- max minotaur speed gets faster and/or speed increases faster as levels go on (hence the "can't escape")
+
+;- use a map of events for eg sound, clear on each loop
+;- smooth movement by allowing "slide" when two keys held against wall
 
 (ns au.net.ryansattler.main
   (:import
@@ -88,7 +92,6 @@
 (defn is-in-wall? [coord level]
   (pos? (count (filter true? (map #(and (:wall %) (in-piece? % coord)) level)))))
 
-;add wall-bumping somehow - multiple returns?
 (defn try-move [[col row] x-direc y-direc level last-moved millis-per-move]
   (let [thetime (current-time)
         newcoord [(+ col x-direc) (+ row y-direc)]]
@@ -157,7 +160,7 @@
       (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyCode e))))
     (keyTyped [e])))
 
-(let [window (JFrame. "You Can't Bump The Walls")
+(let [window (JFrame. "You Can't Escape the Minotaur")
       keys-set-atom (atom #{}) ;set of keyboard keys currently being held down by player
       panel (create-panel window-width window-height keys-set-atom)]
   (configure-gui window panel)
