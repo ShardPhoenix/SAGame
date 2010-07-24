@@ -56,6 +56,9 @@
           (recur maze end closed open g h f came-from))
         (recur maze end closed open g h f came-from)))))))
 
-(defn get-route [maze start end]
+(defn get-route [level start end]
+ (let [maze (into {} (for [cell level] [[(:col cell) (:row cell)] cell]))] 
   (get-route2 maze end #{} #{start} {start 0} 
-        {start (manhattan-dist start end)} {start (manhattan-dist start end)} {}))
+        {start (manhattan-dist start end)} {start (manhattan-dist start end)} {})))
+
+

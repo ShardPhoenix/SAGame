@@ -28,6 +28,11 @@
 ;- use a map of events for eg sound, clear on each loop
 ;- smooth movement by allowing "slide" when two keys held against wall
 
+;- dynamite - smash through walls but angers minotaur? - maybe stuns minotaur first?
+
+;- bugs: -minotaur can spawn in right or bottom wall and get stuck
+;        -minotaur can't wall through demolished walls (uses original maze to nav..)
+
 (ns au.net.ryansattler.main
   (:import
     (java.awt Dimension)
@@ -40,7 +45,7 @@
   (:use [au.net.ryansattler.pathfinding :only (get-route)])
   (:use clojure.contrib.import-static))
 
-(import-static java.awt.event.KeyEvent VK_LEFT VK_RIGHT VK_UP VK_DOWN VK_SPACE VK_SHIFT)
+(import-static java.awt.event.KeyEvent VK_LEFT VK_RIGHT VK_UP VK_DOWN VK_SPACE VK_SHIFT VK_CONTROL)
 
 (if debug 
   (set! *warn-on-reflection* true))
@@ -52,22 +57,21 @@
   (let [minotaur-start (first (filter #(true? (:minotaur-start %)) level))]
     [(:col minotaur-start) (:row minotaur-start)]))
 
-(defstruct minotaur :coord :route :last-moved)
+(defstruct minotaur :coord :route :last-moved :anger)
 (defn make-minotaur [coord]
-  (struct minotaur coord [coord] (current-time))) 
+  (struct minotaur coord [coord] (current-time) 0)) 
 
-(defstruct player :coord :last-moved)
+(defstruct player :coord :last-moved :health)
 (defn make-player [coord]
-  (struct player coord (current-time))) 
+  (struct player coord (current-time) 1)) 
 
 (defn initial-gamestate [] 
   (let [level (gen-level)
         minotaurpos (find-minotaur level)]
 	  {:score 0
      :levelnum 1
-     :won false
+     :victory 0
 	   :level level
-     :maze (zipmap (for [cell level] [(:col cell) (:row cell)]) level) 
 	   :minotaur (make-minotaur minotaurpos)
      :player (make-player [1 1]) 
      :treasures-gained 0
@@ -85,6 +89,22 @@
            %) 
     level))
 
+(defn update-bombed [input level [col row]]
+  (if (:bomb input)
+	      (let [neighbours [[(inc col) (inc row)]
+	                       [(inc col) (dec row)]
+	                       [(dec col) (inc row)]
+	                       [(dec col) (dec row)]
+	                       [(inc col) row]
+	                       [col (inc row)]
+	                       [col (dec row)]
+	                       [(dec col) row]]]
+	          (map #(if (some #{[(:col %) (:row %)]} neighbours)
+	                     (assoc % :wall false)
+	                      %)
+	                level))
+       level))
+
 (defn update-treasure [level coord treasures-gained]
  (let [treasures-touched (count (filter #(and (:treasure %) (in-piece? % coord)) level))]
     (+ treasures-touched treasures-gained)))
@@ -99,40 +119,51 @@
              (>= (- thetime last-moved) millis-per-move)
              (not (is-in-wall? newcoord level)))
 	     newcoord
-	    [col row])))
+	     [col row])))
 
-(defn update-minotaur [minotaur maze level target]
+(defn update-minotaur [minotaur level target]
   (let [route (:route minotaur)
         [col row] (:coord minotaur)
         moved (:last-moved minotaur)
-        minotaur (assoc minotaur :route (get-route maze [col row] target))]
+        minotaur (assoc minotaur :route (get-route level [col row] target))]
   (if (> (count (:route minotaur)) 1)
       (let [nextmove (second (:route minotaur))
             x-direc (- (first nextmove) col)
             y-direc (- (second nextmove) row)
             newcoord (try-move [col row] x-direc y-direc level moved minotaur-millis-per-move)]
-	      minotaur (assoc minotaur :route (get-route maze [col row] target)
+	      minotaur (assoc minotaur :route (get-route level [col row] target)
 	                               :coord newcoord
 	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
       minotaur)))
 
-(defn update-player [player input level]
+
+(defn update-health [player minotaur]
+  (if (= (:coord minotaur) (:coord player))
+    0
+    1))
+
+(defn update-player [player input level minotaur]
  (let [newcoord (try-move (player :coord) (input :x-direc) (input :y-direc) level (player :last-moved) player-millis-per-move)]
   (assoc player :coord newcoord
-                :last-moved (if-not (= newcoord (player :coord)) (current-time) (player :last-moved)))))
+                :last-moved (if-not (= newcoord (player :coord)) (current-time) (player :last-moved))
+                :health (update-health player minotaur))))
 
-(defn update-victory [game]
- (let [[col row] (:coord (game :player))]
-  (or (>= col maze-size) (>= row maze-size))))
+(defn update-victory-loss [game]
+ (let [[col row] (:coord (game :player))
+       health (:health (game :player))]
+  (cond 
+    (or (>= col maze-size) (>= row maze-size)) 1
+    (<= health 0) -1 
+    :else 0)))
 
 (defn update [game input frame window]
  (let [level (game :level)
        coord ((game :player) :coord)]
   (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
-              :level (update-touched level coord)
-              :player (update-player (game :player) input level)
-              :minotaur (update-minotaur (game :minotaur) (game :maze) (game :level) coord)
-              :won (update-victory game))))
+              :level (update-bombed input (update-touched level coord) coord)
+              :player (update-player (game :player) input level (game :minotaur))
+              :minotaur (update-minotaur (game :minotaur) (game :level) coord)
+              :victory (update-victory-loss game))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
@@ -140,16 +171,20 @@
         up (if (keys-set VK_UP) -1 0)
         down (if (keys-set VK_DOWN) 1 0)]
         {:x-direc (+ left right) 
-         :y-direc (+ up down)}))
+         :y-direc (+ up down)
+         :bomb (keys-set VK_CONTROL)}))
 
 (defn display-victory-screen [game]
   (println "you escaped! (with" (:treasures-gained game) "treasures)"))
 
-(defn new-level [game]
+(defn display-loss-screen [game]
+  (println "you died! (with" (:total-treasures game) "treasures and " (dec (:levelnum game)) " levels escaped from)"))
+
+(defn new-level [game died?]
 	(let [gamestate (initial-gamestate)]
-	  (assoc gamestate :total-treasures (+ (:treasures-gained game) (:total-treasures game))
-                     :score (+ (:score game) (* (:treasures-gained game) (:treasures-gained game)))
-	                   :levelnum (inc (:levelnum game))))) 
+	  (assoc gamestate :total-treasures (if died? 0 (+ (:treasures-gained game) (:total-treasures game)))
+                     :score (if died? 0 (+ (:score game) (* (:treasures-gained game) (:treasures-gained game))))
+	                   :levelnum (if died? 1 (inc (:levelnum game))))))
 
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
@@ -175,8 +210,20 @@
       (if debug
         (println (double render-time)))
       (java.lang.Thread/sleep wait-time))
-     (if (:won gamestate)
-      (do 
-        (display-victory-screen gamestate)
-        (recur (new-level gamestate) (inc frame)))
-    (recur gamestate (inc frame))))))
+      (cond (pos? (:victory gamestate)) (do
+                                         (display-victory-screen gamestate)
+                                         (recur (new-level gamestate false) (inc frame)))
+           (neg? (:victory gamestate))  (do
+                                         (display-loss-screen gamestate)
+                                         (recur (new-level gamestate true) (inc frame))) 
+           :else (recur gamestate (inc frame))))))
+
+
+
+
+
+
+
+
+
+

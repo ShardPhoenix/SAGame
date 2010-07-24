@@ -24,13 +24,12 @@
 ;initial maze with checkerboard pattern of wall/not-wall (outside is all wall).
 ;return is a map from [row col] vectors (eg [2 3]) to the maze-cell struct at that position.
 (def initial-maze
-  (zipmap
-    (for [col (range maze-size) row (range maze-size)] [col row])
+  (into {}
 	  (for [col (range maze-size) row (range maze-size)] 
-	    (make-maze-cell col 
+	    [[col row] (make-maze-cell col 
                       row 
                       (starts-as-wall? col row)
-                      (is-exit? col row)))))
+                      (is-exit? col row))])))
 
 ;source copied from clojure 1.2 as this is still on 1.1
 (defn rand-nth [coll]
