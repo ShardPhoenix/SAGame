@@ -37,24 +37,25 @@
     [current])) 
 
 (defn a-star [maze end closed open g h f came-from]
-  (if (empty? open) nil
-  (let [x (lowest-f open f)]
-    (if (= x end)
-      (reconstruct-path came-from end)
-    (let [open (disj open x)
-          closed (conj closed x)
-          neighbours (filter #(not (closed %)) (get-neighbours maze x))
-          tentative-g (+ (g x) 1)
-          good-neighbours (filter #(or (not (open %)) (< tentative-g (g %))) neighbours)]
-      (if (seq good-neighbours)
-         (let 
-	         [open (apply conj open good-neighbours)
-	          came-from (merge came-from (into {} (for [neighbour good-neighbours] [neighbour x]))) 
-	          g (merge g (into {} (for [neighbour good-neighbours] [neighbour tentative-g])))
-	          h (merge h (into {} (for [neighbour good-neighbours] [neighbour (manhattan-dist neighbour end)])))
-	          f (merge f (into {} (for [neighbour good-neighbours] [neighbour (+ (g neighbour) (h neighbour))])))]
-          (recur maze end closed open g h f came-from))
-        (recur maze end closed open g h f came-from)))))))
+  (if (empty? open) 
+    nil
+	  (let [current (lowest-f open f)]
+	    (if (= current end)
+	      (reconstruct-path came-from end)
+	    (let [open (disj open current)
+	          closed (conj closed current)
+	          neighbours (filter #(not (closed %)) (get-neighbours maze current))
+	          tentative-g (+ (g current) 1)
+	          good-neighbours (filter #(or (not (open %)) (< tentative-g (g %))) neighbours)]
+	      (if (seq good-neighbours)
+          (let 
+	          [open (apply conj open good-neighbours)
+	           came-from (merge came-from (into {} (for [neighbour good-neighbours] [neighbour current]))) 
+	           g (merge g (into {} (for [neighbour good-neighbours] [neighbour tentative-g])))
+	           h (merge h (into {} (for [neighbour good-neighbours] [neighbour (manhattan-dist neighbour end)])))
+	           f (merge f (into {} (for [neighbour good-neighbours] [neighbour (+ (g neighbour) (h neighbour))])))]
+            (recur maze end closed open g h f came-from))
+	        (recur maze end closed open g h f came-from)))))))
 
 (defn get-route [level start end]
  (let [maze (into {} (for [cell level] [[(:col cell) (:row cell)] cell]))] 
