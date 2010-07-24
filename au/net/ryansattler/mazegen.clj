@@ -97,7 +97,9 @@
         bottom-right [(- maze-size 2) (- maze-size 2)]]
     (set-random-flags 1 :minotaur-start
             ;make sure minotaur starts in bottom right of maze
-            (fn [spaces] (filter #(and (> (:col %) (/ maze-size 2)) (> (:row %) (/ maze-size 2))) spaces))
+            (fn [spaces] (filter #(and (not (:wall %)) 
+                                       (> (:col %) (/ maze-size 2)) 
+                                       (> (:row %) (/ maze-size 2))) spaces))
       (set-random-flags num-treasures :treasure (fn [x] (treasure-spaces x))
         (vals (gen-level2 maze [] bottom-right))))))
 

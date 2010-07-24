@@ -30,8 +30,7 @@
 
 ;- dynamite - smash through walls but angers minotaur? - maybe stuns minotaur first?
 
-;- bugs: -minotaur can spawn in right or bottom wall and get stuck
-;        -minotaur can't wall through demolished walls (uses original maze to nav..)
+;- bugs: -minotaur can spawn in wall and get stuck (maybe fixed?)
 
 (ns au.net.ryansattler.main
   (:import
@@ -131,8 +130,7 @@
             x-direc (- (first nextmove) col)
             y-direc (- (second nextmove) row)
             newcoord (try-move [col row] x-direc y-direc level moved minotaur-millis-per-move)]
-	      minotaur (assoc minotaur :route (get-route level [col row] target)
-	                               :coord newcoord
+	      minotaur (assoc minotaur :coord newcoord
 	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
       minotaur)))
 
