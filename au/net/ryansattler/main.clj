@@ -14,7 +14,7 @@
 ;- instructions on left side of screen
 
 ;- gameplay ideas: minotaur touch only damages, but gets faster ("angrier") with each treasure taken
-;- have to exit at start instead?
+;- have to exit at start instead? - TRY THIS
 ;- distrbute treasures biasedly based on distance from start (and exit if applicable)
 ;- minotaur, when altered (eg pick up treasure), goes there. otherwise follows player if in line of sight, otherwise goes back to start
 ;- minotaur always follows player when maximally angry?
@@ -27,8 +27,12 @@
 
 ;- dynamite - smash through walls but angers minotaur? - maybe stuns minotaur first?
 ;- need to wait between bombs rather than using all up with one press, or use keyTyped?
+;- min number of treasures (eg 4) needed to exit?
+;- redo all rendering coords as relative in col/row etc
 
 ;- bugs: -minotaur can spawn in wall and get stuck (maybe fixed?)
+
+
 
 (ns au.net.ryansattler.main
   (:import
@@ -157,7 +161,7 @@
  (let [[col row] (:coord (game :player))
        health (:health (game :player))]
   (cond 
-    (or (>= col maze-size) (>= row maze-size)) 1 ;player has escaped
+    (or (>= col maze-size) (>= row maze-size) (< col 0) (< row 0)) 1 ;player has escaped
     (<= health 0) -1 ;player has died
     :else 0)))
 

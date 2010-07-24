@@ -39,7 +39,7 @@
 
 (defn render-treasures [gfx treasures]
   (dotimes [n treasures]
-    (render-square gfx :gold (coord-to-pix [(+ (* 1.5 n) -10) -5]))))
+    (render-square gfx :gold (coord-to-pix [(+ (* 1.5 n) -9) -5]))))
 
 (defn render-route [gfx route]
   (doseq [coord route]

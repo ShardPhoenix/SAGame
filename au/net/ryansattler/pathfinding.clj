@@ -36,7 +36,7 @@
     (concat (reconstruct-path came-from (came-from current)) [current])
     [current])) 
 
-(defn get-route2 [maze end closed open g h f came-from]
+(defn a-star [maze end closed open g h f came-from]
   (if (empty? open) nil
   (let [x (lowest-f open f)]
     (if (= x end)
@@ -58,7 +58,7 @@
 
 (defn get-route [level start end]
  (let [maze (into {} (for [cell level] [[(:col cell) (:row cell)] cell]))] 
-  (get-route2 maze end #{} #{start} {start 0} 
+  (a-star maze end #{} #{start} {start 0} 
         {start (manhattan-dist start end)} {start (manhattan-dist start end)} {})))
 
 
