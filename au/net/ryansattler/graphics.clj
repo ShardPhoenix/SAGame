@@ -51,23 +51,45 @@
   (.setColor gfx (color :black))
   (.drawString gfx (str "Level " (:levelnum game)) 75 75)
   (.drawString gfx (str "Total treasures: " (:total-treasures game)) 75 100)
-  (.drawString gfx (str "Total score: " (:score game)) 75 125 ))
+  (.drawString gfx (str "Total score: " (:score game)) 75 125)
+  (.drawString gfx (str "Bombs left: " (:bombs (:player game))) 75 150))
 
 (defn render-debug [#^Graphics gfx game frame]
   (render-route gfx (:route (game :minotaur))))
 
+(defn render-victory-screen [gfx game]
+  (.setColor gfx (color :black))
+  (.drawString gfx (str "You escaped with " (:treasures-gained game) " treasures!") (/ window-width 4) (/ window-height 2)))
+
+(defn render-loss-screen [gfx game]
+  (.setColor gfx (color :black))
+  (.drawString gfx (str "You couldn't escape the minotaur! You died with " (+ (:treasures-gained game) (:total-treasures game)) 
+                        " treasures and " (dec (:levelnum game)) " levels escaped.")
+    (/ window-width 4) (/ window-height 2)))
+
+(defn render-splash-screen [gfx game]
+  (.setColor gfx (color :black))
+  (.drawString gfx (str "You Can't Escape the Minotaur! ... but you can try!")
+    (/ window-width 4) (/ window-height 2)))
+
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
         #^Graphics gfx (.createGraphics image)
-        #^Graphics2D gfx2 (.getGraphics #^JFrame window)]
+        #^Graphics2D gfx2 (.getGraphics #^JFrame window)
+        victory (:victory game)
+        started (:started game)]
       (render-background gfx)
-      (if debug
-        (render-debug gfx game frame))
-      (render-level gfx (game :level))
-      (render-square gfx :blue (coord-to-pix ((game :player) :coord)))
-      (render-square gfx :brown (coord-to-pix (:coord (game :minotaur))))
-      (render-treasures gfx (game :treasures-gained))
-      (render-scores gfx game) 
+      (cond (not started) (render-splash-screen gfx game) 
+            (pos? victory) (render-victory-screen gfx game)
+            (neg? victory) (render-loss-screen gfx game)
+					  :else  (do 
+                     (if debug
+							         (render-debug gfx game frame))
+							       (render-level gfx (game :level))
+							       (render-square gfx :blue (coord-to-pix ((game :player) :coord)))
+							       (render-square gfx :brown (coord-to-pix (:coord (game :minotaur))))
+							       (render-treasures gfx (game :treasures-gained))
+							       (render-scores gfx game)))
       (.drawImage gfx2 image 0 0 window)))
 
 (defn configure-gui [#^JFrame window #^JPanel panel]

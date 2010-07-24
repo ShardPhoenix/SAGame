@@ -1,9 +1,7 @@
 ;TODO:
-;- add time limit and win condition, lose condition
 ;- multiple levels, gui (start button etc), high scores
 ;- graphical effects, challenge modes, sub-goals, points for squares touched etc
 ;- powerups?
-;- hardcore modes: 1 hit/life, narrower corridors, low time-limit
 ;- sounds/music
 ;- start, pause buttons
 ;- tests
@@ -12,7 +10,6 @@
 ;- diff. music after minotaur is activated (or player is in trouble etc)
 ;- goal: grab all treasures and escape, don't get caught by minotaur
 ;- time limit after which minotaur goes straight for you?
-;- "you can't bump the walls" or "you can't escape the minotaur" or..?
 ;- move to clojure 1.2 beta?
 ;- instructions on left side of screen
 
@@ -29,6 +26,7 @@
 ;- smooth movement by allowing "slide" when two keys held against wall
 
 ;- dynamite - smash through walls but angers minotaur? - maybe stuns minotaur first?
+;- need to wait between bombs rather than using all up with one press, or use keyTyped?
 
 ;- bugs: -minotaur can spawn in wall and get stuck (maybe fixed?)
 
@@ -39,7 +37,7 @@
     (java.awt.event KeyListener)
     (java.awt.event KeyEvent))
   (:use au.net.ryansattler.constants)
-  (:use [au.net.ryansattler.graphics  :only (render configure-gui)])
+  (:use [au.net.ryansattler.graphics  :only (render configure-gui render-victory-screen render-loss-screen)])
   (:use [au.net.ryansattler.mazegen :only (gen-level)])
   (:use [au.net.ryansattler.pathfinding :only (get-route)])
   (:use clojure.contrib.import-static))
@@ -60,15 +58,16 @@
 (defn make-minotaur [coord]
   (struct minotaur coord [coord] (current-time) 0)) 
 
-(defstruct player :coord :last-moved :health)
+(defstruct player :coord :last-moved :health :bombs)
 (defn make-player [coord]
-  (struct player coord (current-time) 1)) 
+  (struct player coord (current-time) 1 2)) 
 
 (defn initial-gamestate [] 
   (let [level (gen-level)
         minotaurpos (find-minotaur level)]
 	  {:score 0
      :levelnum 1
+     :started false
      :victory 0
 	   :level level
 	   :minotaur (make-minotaur minotaurpos)
@@ -88,8 +87,15 @@
            %) 
     level))
 
-(defn update-bombed [input level [col row]]
-  (if (:bomb input)
+(defn edge-wall? [wall]
+  (or
+	 (= (:col wall) (dec maze-size))
+	 (= (:col wall) 0)
+	 (= (:row wall) (dec maze-size))
+	 (= (:row wall) 0)))
+
+(defn update-bombed [input level [col row] bombs]
+  (if (and (:bomb input) (pos? bombs))
 	      (let [neighbours [[(inc col) (inc row)]
 	                       [(inc col) (dec row)]
 	                       [(dec col) (inc row)]
@@ -98,7 +104,7 @@
 	                       [col (inc row)]
 	                       [col (dec row)]
 	                       [(dec col) row]]]
-	          (map #(if (some #{[(:col %) (:row %)]} neighbours)
+	          (map #(if (and (some #{[(:col %) (:row %)]} neighbours) (not (edge-wall? %)))
 	                     (assoc % :wall false)
 	                      %)
 	                level))
@@ -141,10 +147,12 @@
     1))
 
 (defn update-player [player input level minotaur]
- (let [newcoord (try-move (player :coord) (input :x-direc) (input :y-direc) level (player :last-moved) player-millis-per-move)]
+ (let [newcoord (try-move (player :coord) (input :x-direc) (input :y-direc) level (player :last-moved) player-millis-per-move)
+       bombs (:bombs player)]
   (assoc player :coord newcoord
                 :last-moved (if-not (= newcoord (player :coord)) (current-time) (player :last-moved))
-                :health (update-health player minotaur))))
+                :health (update-health player minotaur)
+                :bombs (if (and (:bomb input) (pos? bombs)) (dec bombs) bombs))))
 
 (defn update-victory-loss [game]
  (let [[col row] (:coord (game :player))
@@ -156,11 +164,13 @@
 
 (defn update [game input frame window]
  (let [level (game :level)
-       coord ((game :player) :coord)]
+       player (game :player) 
+       coord (player :coord)
+       minotaur (game :minotaur)]
   (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
-              :level (update-bombed input (update-touched level coord) coord)
-              :player (update-player (game :player) input level (game :minotaur))
-              :minotaur (update-minotaur (game :minotaur) (game :level) coord)
+              :level (update-bombed input (update-touched level coord) coord (:bombs player))
+              :player (update-player player input level minotaur)
+              :minotaur (update-minotaur minotaur level coord)
               :victory (update-victory-loss game))))
 
 (defn get-input [keys-set] 
@@ -172,17 +182,18 @@
          :y-direc (+ up down)
          :bomb (keys-set VK_CONTROL)}))
 
-(defn display-victory-screen [game]
-  (println "you escaped! (with" (:treasures-gained game) "treasures)"))
-
-(defn display-loss-screen [game]
-  (println "you died! (with" (:total-treasures game) "treasures and " (dec (:levelnum game)) " levels escaped from)"))
-
 (defn new-level [game died?]
 	(let [gamestate (initial-gamestate)]
 	  (assoc gamestate :total-treasures (if died? 0 (+ (:treasures-gained game) (:total-treasures game)))
                      :score (if died? 0 (+ (:score game) (* (:treasures-gained game) (:treasures-gained game))))
-	                   :levelnum (if died? 1 (inc (:levelnum game))))))
+	                   :levelnum (if died? 1 (inc (:levelnum game)))
+                     :started true)))
+
+(defn sleep [millis]
+  (let [start (current-time)]
+    (loop [thetime (current-time)]
+      (if (< (- thetime start) millis)
+        (recur (current-time))))))
 
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
@@ -195,9 +206,13 @@
 
 (let [window (JFrame. "You Can't Escape the Minotaur")
       keys-set-atom (atom #{}) ;set of keyboard keys currently being held down by player
-      panel (create-panel window-width window-height keys-set-atom)]
+      panel (create-panel window-width window-height keys-set-atom)
+      game (initial-gamestate)]
   (configure-gui window panel)
-  (loop [gamestate (initial-gamestate)
+  (java.lang.Thread/sleep 1000) ; need to wait to make sure screen ready to draw on - better way to check?
+  (render game window 0)
+  (java.lang.Thread/sleep start-screen-time)
+  (loop [gamestate (assoc game :started true)
          frame 1]
     (let [start-time (current-time)
           input (get-input @keys-set-atom)
@@ -209,12 +224,14 @@
         (println (double render-time)))
       (java.lang.Thread/sleep wait-time))
       (cond (pos? (:victory gamestate)) (do
-                                         (display-victory-screen gamestate)
+                                         (render gamestate window frame)
+                                         (java.lang.Thread/sleep end-screen-time)
                                          (recur (new-level gamestate false) (inc frame)))
-           (neg? (:victory gamestate))  (do
-                                         (display-loss-screen gamestate)
+            (neg? (:victory gamestate)) (do
+                                         (render gamestate window frame)
+                                         (java.lang.Thread/sleep end-screen-time)
                                          (recur (new-level gamestate true) (inc frame))) 
-           :else (recur gamestate (inc frame))))))
+            :else (recur gamestate (inc frame))))))
 
 
 

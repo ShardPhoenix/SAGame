@@ -6,6 +6,8 @@
 (def min-millis-per-frame (long (/ 1000 max-fps)))
 (def window-width 1024)
 (def window-height 768)
+(def end-screen-time 3000)
+(def start-screen-time 3000) 
 
 (def wall-width 18)
 (def maze-size 23) ;odd number
