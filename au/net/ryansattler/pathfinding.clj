@@ -48,17 +48,17 @@
           good-neighbours (filter #(or (not (open %)) (< tentative-g (g %))) neighbours)]
       (if (seq good-neighbours)
          (let 
-            [open (apply conj open good-neighbours)
-            came-from (apply assoc came-from (concat (interpose x good-neighbours) [x]))
-            g (apply assoc g (concat (interpose tentative-g good-neighbours) [tentative-g]))
-            h (apply assoc h (interleave good-neighbours (map #(manhattan-dist % end) good-neighbours)))
-            f (apply assoc f (interleave good-neighbours (map #(+ (g %) (h %)) good-neighbours)))]
+	         [open (apply conj open good-neighbours)
+	          came-from (merge came-from (into {} (for [neighbour good-neighbours] [neighbour x]))) 
+	          g (merge g (into {} (for [neighbour good-neighbours] [neighbour tentative-g])))
+	          h (merge h (into {} (for [neighbour good-neighbours] [neighbour (manhattan-dist neighbour end)])))
+	          f (merge f (into {} (for [neighbour good-neighbours] [neighbour (+ (g neighbour) (h neighbour))])))]
           (recur maze end closed open g h f came-from))
         (recur maze end closed open g h f came-from)))))))
 
 (defn get-route [level start end]
  (let [maze (into {} (for [cell level] [[(:col cell) (:row cell)] cell]))] 
   (a-star maze end #{} #{start} {start 0} 
-        {start (manhattan-dist start end)} {start (manhattan-dist start end)} {})))
+    {start (manhattan-dist start end)} {start (manhattan-dist start end)} {})))
 
 
