@@ -23,17 +23,15 @@
 (defn render-level [#^Graphics gfx level]
   (doseq [maze-cell level]
     (if (:wall maze-cell)
-        (do
-          (if (:touched maze-cell)
-            (.setColor gfx (color :red))
-            (.setColor gfx (color :black)))
-          (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
-        (do
-          (cond  
-              (:treasure maze-cell) (.setColor gfx (color :gold))
-              (:touched maze-cell)  (.setColor gfx (color :green))
-              :else (.setColor gfx (color :background)))
-          (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
+      (do
+        (.setColor gfx (color :black))
+        (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
+      (do
+        (cond  
+            (:treasure maze-cell) (.setColor gfx (color :gold))
+            (:touched maze-cell)  (.setColor gfx (color :green))
+            :else (.setColor gfx (color :background)))
+        (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
 
 (defn render-square [#^Graphics gfx thecolor [x y]]
   (.setColor gfx (color thecolor))

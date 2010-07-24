@@ -140,7 +140,6 @@
 	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
       minotaur)))
 
-
 (defn update-health [player minotaur]
   (if (= (:coord minotaur) (:coord player))
     0
@@ -154,12 +153,12 @@
                 :health (update-health player minotaur)
                 :bombs (if (and (:bomb input) (pos? bombs)) (dec bombs) bombs))))
 
-(defn update-victory-loss [game]
+(defn update-victory [game]
  (let [[col row] (:coord (game :player))
        health (:health (game :player))]
   (cond 
-    (or (>= col maze-size) (>= row maze-size)) 1
-    (<= health 0) -1 
+    (or (>= col maze-size) (>= row maze-size)) 1 ;player has escaped
+    (<= health 0) -1 ;player has died
     :else 0)))
 
 (defn update [game input frame window]
@@ -171,7 +170,7 @@
               :level (update-bombed input (update-touched level coord) coord (:bombs player))
               :player (update-player player input level minotaur)
               :minotaur (update-minotaur minotaur level coord)
-              :victory (update-victory-loss game))))
+              :victory (update-victory game))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
@@ -189,12 +188,6 @@
 	                   :levelnum (if died? 1 (inc (:levelnum game)))
                      :started true)))
 
-(defn sleep [millis]
-  (let [start (current-time)]
-    (loop [thetime (current-time)]
-      (if (< (- thetime start) millis)
-        (recur (current-time))))))
-
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
     (getPreferredSize [] (Dimension. width height))
@@ -207,12 +200,12 @@
 (let [window (JFrame. "You Can't Escape the Minotaur")
       keys-set-atom (atom #{}) ;set of keyboard keys currently being held down by player
       panel (create-panel window-width window-height keys-set-atom)
-      game (initial-gamestate)]
+      game {:started false}]
   (configure-gui window panel)
-  (java.lang.Thread/sleep 1000) ; need to wait to make sure screen ready to draw on - better way to check?
+  (java.lang.Thread/sleep 500) ;need to wait to make sure screen ready to draw on - better way to check?
   (render game window 0)
   (java.lang.Thread/sleep start-screen-time)
-  (loop [gamestate (assoc game :started true)
+  (loop [gamestate (assoc (initial-gamestate) :started true)
          frame 1]
     (let [start-time (current-time)
           input (get-input @keys-set-atom)
