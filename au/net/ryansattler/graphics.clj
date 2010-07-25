@@ -89,6 +89,12 @@
                       (+ (second last-coord) y-delta)]] 
   (render-square gfx color (coord-to-pix coord-to-draw))))
 
+(defn render-paused [gfx game]
+  (render-scores gfx game)
+  (render-treasures gfx (game :treasures-gained))
+  (.setColor gfx (color :black))
+  (.drawString gfx (str "Game paused. Press p to resume.") (/ window-width 4) (/ window-height 2)))
+
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
         #^Graphics gfx (.createGraphics image)
@@ -99,6 +105,7 @@
       (cond (not started) (render-splash-screen gfx game) 
             (pos? victory) (render-victory-screen gfx game)
             (neg? victory) (render-loss-screen gfx game)
+            (:paused game) (render-paused gfx game) 
 					  :else  (do 
                      (if debug
 							         (render-debug gfx game frame))

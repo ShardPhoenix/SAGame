@@ -1,6 +1,6 @@
 (ns au.net.ryansattler.constants)
 
-(def debug true)
+(def debug false)
 
 (def max-fps 60)
 (def min-millis-per-frame (long (/ 1000 max-fps)))

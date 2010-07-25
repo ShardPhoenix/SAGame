@@ -3,7 +3,7 @@
 ;- graphical effects, challenge modes, sub-goals, points for squares touched etc
 ;- powerups?
 ;- sounds/music
-;- start, pause buttons
+;- pause key
 ;- tests
 ;- "theseus and minotaur"
 ;- diff. music after minotaur is activated (or player is in trouble etc)
@@ -12,10 +12,10 @@
 ;- move to clojure 1.2 beta?
 ;- instructions on left side of screen
 
-;- gameplay ideas: minotaur touch only damages, but gets faster ("angrier") with each treasure taken
 ;- have to exit at start instead? - TRY THIS
 ;- distrbute treasures biasedly based on distance from start (and exit if applicable)
-;- minotaur, when altered (eg pick up treasure), goes there. otherwise follows player if in line of sight, otherwise goes back to start
+;- minotaur, when angered (eg pick up treasure), goes there. otherwise follows player if in line of sight, 
+;- otherwise goes back to start
 ;- minotaur always follows player when maximally angry?
 ;- increase branching factor of maze (maybe remove random walls)
 ;- minotaur gets angry based on treasures, time, or both
@@ -44,7 +44,7 @@
   (:use [au.net.ryansattler.pathfinding :only (get-route)])
   (:use clojure.contrib.import-static))
 
-(import-static java.awt.event.KeyEvent VK_LEFT VK_RIGHT VK_UP VK_DOWN VK_SPACE VK_SHIFT VK_CONTROL)
+(import-static java.awt.event.KeyEvent VK_LEFT VK_RIGHT VK_UP VK_DOWN VK_SPACE VK_SHIFT VK_CONTROL VK_P)
 
 (if debug 
   (set! *warn-on-reflection* true))
@@ -72,7 +72,8 @@
 	   :minotaur (make-minotaur minotaurpos)
      :player (make-player [1 1]) 
      :treasures-gained 0
-     :total-treasures 0}))
+     :total-treasures 0
+     :paused false}))
 
 (defn in-piece? [piece [col row]]
     (and (= (:col piece) col)
@@ -172,7 +173,8 @@
               :level (update-bombed input (update-touched level coord) coord (:bombs player))
               :player (update-player player input level minotaur)
               :minotaur (update-minotaur minotaur level coord)
-              :victory (update-victory game))))
+              :victory (update-victory game)
+              :paused (:pause input))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
@@ -181,7 +183,8 @@
         down (if (keys-set VK_DOWN) 1 0)]
         {:x-direc (+ left right) 
          :y-direc (+ up down)
-         :bomb (keys-set VK_CONTROL)}))
+         :bomb (keys-set VK_CONTROL)
+         :pause (keys-set \p)}))
 
 (defn new-level [game died?]
 	(let [gamestate (initial-gamestate)]
@@ -194,10 +197,21 @@
   (proxy [JPanel KeyListener] []
     (getPreferredSize [] (Dimension. width height))
     (keyPressed [#^KeyEvent e]
-      (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyCode e))))
+      (if-not (= (.getKeyCode e) VK_P) 
+        (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyCode e)))))
     (keyReleased [#^KeyEvent e]
-      (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyCode e))))
-    (keyTyped [e])))
+      (if-not (= (.getKeyCode e) VK_P)
+        (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyCode e)))))
+    (keyTyped [#^KeyEvent e]
+      (if (= (.getKeyChar e) \p)
+        (if-not (@key-code-atom \p)
+          (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyChar e)))
+          (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyChar e))))))))
+
+(defn pause-wait [keys-set-atom game window frame]
+  (if (:pause (get-input @keys-set-atom))
+    (do (render game window frame) 
+        (recur keys-set-atom game window frame)))) 
 
 (let [window (JFrame. "You Can't Escape the Minotaur")
       keys-set-atom (atom #{}) ;set of keyboard keys currently being held down by player
@@ -212,6 +226,8 @@
     (let [start-time (current-time)
           input (get-input @keys-set-atom)
           gamestate (update gamestate input frame window)]
+         (if (:paused gamestate)
+           (pause-wait keys-set-atom gamestate window frame))
          (render gamestate window frame)
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
