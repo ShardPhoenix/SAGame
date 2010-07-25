@@ -70,15 +70,15 @@
 
 (defn render-splash-screen [gfx game]
   (.setColor gfx (color :black))
-  (.drawString gfx (str "You Can't Escape the Minotaur! ... but you can try!")
+  (.drawString gfx (str "You Can't Escape the Minotaur!... but you can try!")
     (/ window-width 4) (/ window-height 2)))
 
 ;smoothly animate by interpolating between previous and current coords depending on speed
-(defn render-smoothly [gfx color player]
- (let [coord (:coord player)
-       last-coord (:last-coord player)
-       last-moved (:last-moved player)
-       millis-per-move (:millis-per-move player) 
+(defn render-smoothly [gfx color unit]
+ (let [coord (:coord unit)
+       last-coord (:last-coord unit)
+       last-moved (:last-moved unit)
+       millis-per-move (:millis-per-move unit) 
        thetime (current-time)
        time-since-moved (- thetime last-moved) 
        x-diff (- (first coord) (first last-coord))

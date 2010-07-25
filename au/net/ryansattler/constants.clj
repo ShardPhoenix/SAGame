@@ -14,8 +14,8 @@
 (def maze-top-margin 150)
 (def maze-left-margin 300)
 
-(def player-millis-per-move 66)
-(def minotaur-millis-per-move 200)
+(def initial-player-millis-per-move 66)
+(def initial-minotaur-millis-per-move 200)
 
 (def num-treasures 8) 
 

@@ -21,7 +21,7 @@
 ;- minotaur gets angry based on treasures, time, or both
 ;- max minotaur speed gets faster and/or speed increases faster as levels go on (hence the "can't escape")
 
-;- use a map of events for eg sound, clear on each loop
+;- use a map of events for eg sound, clear on each loop?
 
 ;- dynamite - smash through walls but angers minotaur? - maybe stuns minotaur first?
 ;- need to wait between bombs rather than using all up with one press, or use keyTyped?
@@ -55,11 +55,11 @@
 
 (defstruct minotaur :coord :route :last-moved :last-coord :millis-per-move :anger)
 (defn make-minotaur [coord]
-  (struct minotaur coord [coord] (current-time) coord minotaur-millis-per-move 0)) 
+  (struct minotaur coord [coord] (current-time) coord initial-minotaur-millis-per-move 0)) 
 
 (defstruct player :coord :last-moved :last-coord :millis-per-move :health :bombs)
 (defn make-player [coord]
-  (struct player coord (current-time) coord player-millis-per-move 1 2)) 
+  (struct player coord (current-time) coord initial-player-millis-per-move 1 2)) 
 
 (defn initial-gamestate [] 
   (let [level (gen-level)
@@ -134,7 +134,7 @@
       (let [nextmove (second (:route minotaur))
             x-direc (- (first nextmove) col)
             y-direc (- (second nextmove) row)
-            newcoord (try-move [col row] x-direc y-direc level moved minotaur-millis-per-move)]
+            newcoord (try-move [col row] x-direc y-direc level moved (:millis-per-move minotaur))]
 	      minotaur (assoc minotaur :last-coord (if-not (= newcoord [col row]) [col row] (minotaur :last-coord))
                                  :coord newcoord
 	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
@@ -147,7 +147,7 @@
 
 (defn update-player [player input level minotaur]
  (let [coord (:coord player) 
-       newcoord (try-move coord (input :x-direc) (input :y-direc) level (player :last-moved) player-millis-per-move)
+       newcoord (try-move coord (input :x-direc) (input :y-direc) level (player :last-moved) (:millis-per-move player))
        bombs (:bombs player)]
   (assoc player :last-coord (if-not (= newcoord coord) coord (player :last-coord))
                 :coord newcoord
