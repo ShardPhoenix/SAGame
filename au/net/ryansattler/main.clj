@@ -5,7 +5,6 @@
 ;- sounds/music
 ;- start, pause buttons
 ;- tests
-;- smooth animation?
 ;- "theseus and minotaur"
 ;- diff. music after minotaur is activated (or player is in trouble etc)
 ;- goal: grab all treasures and escape, don't get caught by minotaur
@@ -23,15 +22,14 @@
 ;- max minotaur speed gets faster and/or speed increases faster as levels go on (hence the "can't escape")
 
 ;- use a map of events for eg sound, clear on each loop
-;- smooth movement by allowing "slide" when two keys held against wall
 
 ;- dynamite - smash through walls but angers minotaur? - maybe stuns minotaur first?
 ;- need to wait between bombs rather than using all up with one press, or use keyTyped?
 ;- min number of treasures (eg 4) needed to exit?
 ;- redo all rendering coords as relative in col/row etc
+;- make green trail not go "in front of" player (rendering issue - needs delay or something)
 
 ;- bugs: -minotaur can spawn in wall and get stuck (maybe fixed?)
-
 
 
 (ns au.net.ryansattler.main
@@ -41,7 +39,7 @@
     (java.awt.event KeyListener)
     (java.awt.event KeyEvent))
   (:use au.net.ryansattler.constants)
-  (:use [au.net.ryansattler.graphics  :only (render configure-gui render-victory-screen render-loss-screen)])
+  (:use [au.net.ryansattler.graphics  :only (render configure-gui current-time)])
   (:use [au.net.ryansattler.mazegen :only (gen-level)])
   (:use [au.net.ryansattler.pathfinding :only (get-route)])
   (:use clojure.contrib.import-static))
@@ -51,20 +49,17 @@
 (if debug 
   (set! *warn-on-reflection* true))
 
-(defn current-time []
-  (/ (java.lang.System/nanoTime) 1000000))
-
 (defn find-minotaur [level]
   (let [minotaur-start (first (filter #(true? (:minotaur-start %)) level))]
     [(:col minotaur-start) (:row minotaur-start)]))
 
-(defstruct minotaur :coord :route :last-moved :anger)
+(defstruct minotaur :coord :route :last-moved :last-coord :millis-per-move :anger)
 (defn make-minotaur [coord]
-  (struct minotaur coord [coord] (current-time) 0)) 
+  (struct minotaur coord [coord] (current-time) coord minotaur-millis-per-move 0)) 
 
-(defstruct player :coord :last-moved :health :bombs)
+(defstruct player :coord :last-moved :last-coord :millis-per-move :health :bombs)
 (defn make-player [coord]
-  (struct player coord (current-time) 1 2)) 
+  (struct player coord (current-time) coord player-millis-per-move 1 2)) 
 
 (defn initial-gamestate [] 
   (let [level (gen-level)
@@ -140,7 +135,8 @@
             x-direc (- (first nextmove) col)
             y-direc (- (second nextmove) row)
             newcoord (try-move [col row] x-direc y-direc level moved minotaur-millis-per-move)]
-	      minotaur (assoc minotaur :coord newcoord
+	      minotaur (assoc minotaur :last-coord (if-not (= newcoord [col row]) [col row] (minotaur :last-coord))
+                                 :coord newcoord
 	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
       minotaur)))
 
@@ -150,10 +146,12 @@
     1))
 
 (defn update-player [player input level minotaur]
- (let [newcoord (try-move (player :coord) (input :x-direc) (input :y-direc) level (player :last-moved) player-millis-per-move)
+ (let [coord (:coord player) 
+       newcoord (try-move coord (input :x-direc) (input :y-direc) level (player :last-moved) player-millis-per-move)
        bombs (:bombs player)]
-  (assoc player :coord newcoord
-                :last-moved (if-not (= newcoord (player :coord)) (current-time) (player :last-moved))
+  (assoc player :last-coord (if-not (= newcoord coord) coord (player :last-coord))
+                :coord newcoord
+                :last-moved (if-not (= newcoord coord) (current-time) (player :last-moved))
                 :health (update-health player minotaur)
                 :bombs (if (and (:bomb input) (pos? bombs)) (dec bombs) bombs))))
 

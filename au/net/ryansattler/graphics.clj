@@ -5,6 +5,9 @@
     (javax.swing JFrame JOptionPane JPanel))
   (:use au.net.ryansattler.constants))
 
+(defn current-time []
+  (/ (java.lang.System/nanoTime) 1000000))
+
 (def color {:blue (Color. 0 61 245)
             :red  (Color. 245 61 0)
             :green(Color. 61 245 0)
@@ -70,6 +73,22 @@
   (.drawString gfx (str "You Can't Escape the Minotaur! ... but you can try!")
     (/ window-width 4) (/ window-height 2)))
 
+;smoothly animate by interpolating between previous and current coords depending on speed
+(defn render-smoothly [gfx color player]
+ (let [coord (:coord player)
+       last-coord (:last-coord player)
+       last-moved (:last-moved player)
+       millis-per-move (:millis-per-move player) 
+       thetime (current-time)
+       time-since-moved (- thetime last-moved) 
+       x-diff (- (first coord) (first last-coord))
+       y-diff (- (second coord) (second last-coord))
+       x-delta (* x-diff (min 1 (/ time-since-moved millis-per-move)))
+       y-delta (* y-diff (min 1 (/ time-since-moved millis-per-move)))
+       coord-to-draw [(+ (first last-coord) x-delta)
+                      (+ (second last-coord) y-delta)]] 
+  (render-square gfx color (coord-to-pix coord-to-draw))))
+
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
         #^Graphics gfx (.createGraphics image)
@@ -84,8 +103,8 @@
                      (if debug
 							         (render-debug gfx game frame))
 							       (render-level gfx (game :level))
-							       (render-square gfx :blue (coord-to-pix ((game :player) :coord)))
-							       (render-square gfx :brown (coord-to-pix (:coord (game :minotaur))))
+							       (render-smoothly gfx :blue (game :player)) 
+							       (render-smoothly gfx :brown (game :minotaur))
 							       (render-treasures gfx (game :treasures-gained))
 							       (render-scores gfx game)))
       (.drawImage gfx2 image 0 0 window)))

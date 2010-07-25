@@ -10,7 +10,7 @@
 (def start-screen-time 3000) 
 
 (def wall-width 18)
-(def maze-size 31) ;odd number
+(def maze-size 25) ;odd number
 (def maze-top-margin 150)
 (def maze-left-margin 300)
 

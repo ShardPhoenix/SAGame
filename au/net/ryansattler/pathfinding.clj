@@ -1,12 +1,7 @@
 (ns au.net.ryansattler.pathfinding)
 
 (defn get-neighbours [maze [col row]]
-  (let [neighbours [;diagonals commented out for now - smoother look with only orthogonal movement
-                    ;(maze [(inc col) (inc row)])
-                    ;(maze [(inc col) (dec row)])
-                    ;(maze [(dec col) (inc row)])
-                    ;(maze [(dec col) (dec row)])
-                    (maze [(inc col) row])
+  (let [neighbours [(maze [(inc col) row])
                     (maze [col (inc row)])
                     (maze [col (dec row)])
                     (maze [(dec col) row])]]
@@ -19,6 +14,7 @@
 (defn manhattan-dist [[a b] [x y]]
   (+ (abs (- a x)) (abs (- b y))))
 
+;could be much more concise with reduce but it's far too slow...
 (defn lowest-f2 [open f best-f best-so-far]
   (let [current (first open)
          currentf (f current)]
