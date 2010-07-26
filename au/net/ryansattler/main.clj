@@ -29,6 +29,8 @@
 ;- redo all rendering coords as relative in col/row etc
 ;- make green trail not go "in front of" player (rendering issue - needs delay or something)
 
+;- add 1 random bomb pickup to each level?
+
 ;- bugs: -minotaur can spawn in wall and get stuck (maybe fixed?)
 
 
@@ -57,9 +59,9 @@
 (defn make-minotaur [coord]
   (struct minotaur coord [coord] (current-time) coord initial-minotaur-millis-per-move 0)) 
 
-(defstruct player :coord :last-moved :last-coord :millis-per-move :health :bombs)
+(defstruct player :coord :last-moved :last-coord :millis-per-move :health :bombs :last-bombed)
 (defn make-player [coord]
-  (struct player coord (current-time) coord initial-player-millis-per-move 1 2)) 
+  (struct player coord (current-time) coord initial-player-millis-per-move 1 99 0)) 
 
 (defn initial-gamestate [] 
   (let [level (gen-level)
@@ -94,8 +96,10 @@
 	 (= (:row wall) (dec maze-size))
 	 (= (:row wall) 0)))
 
-(defn update-bombed [input level [col row] bombs]
-  (if (and (:bomb input) (pos? bombs))
+(defn update-bombed [input level [col row] player]
+ (let [bombs (:bombs player)
+       should-bomb? (<= bomb-delay (- (current-time) (:last-bombed player)))]
+  (if (and should-bomb? (:bomb input) (pos? bombs))
 	      (let [neighbours [[(inc col) (inc row)]
 	                       [(inc col) (dec row)]
 	                       [(dec col) (inc row)]
@@ -108,7 +112,7 @@
 	                     (assoc % :wall false)
 	                      %)
 	                level))
-       level))
+       level)))
 
 (defn update-treasure [level coord treasures-gained]
  (let [treasures-touched (count (filter #(and (:treasure %) (in-piece? % coord)) level))]
@@ -126,11 +130,18 @@
 	     newcoord
 	     [col row])))
 
-(defn update-minotaur [minotaur level target]
+;also start moving if enough time has elapsed, etc
+(defn get-minotaur-route [level coord target treasures]
+  (cond
+    (zero? treasures) [coord]
+    (pos? treasures) (get-route level coord target))) 
+
+(defn update-minotaur [minotaur level target game]
   (let [route (:route minotaur)
         [col row] (:coord minotaur)
         moved (:last-moved minotaur)
-        minotaur (assoc minotaur :route (get-route level [col row] target))]
+        treasures (:treasures-gained game)
+        minotaur (assoc minotaur :route (get-minotaur-route level [col row] target treasures))]
   (if (> (count (:route minotaur)) 1)
       (let [nextmove (second (:route minotaur))
             x-direc (- (first nextmove) col)
@@ -149,12 +160,16 @@
 (defn update-player [player input level minotaur]
  (let [coord (:coord player) 
        newcoord (try-move coord (input :x-direc) (input :y-direc) level (player :last-moved) (:millis-per-move player))
-       bombs (:bombs player)]
+       bombs (:bombs player)
+       should-bomb? (and (:bomb input) 
+                         (pos? bombs) 
+                         (<= bomb-delay (- (current-time) (:last-bombed player))))]
   (assoc player :last-coord (if-not (= newcoord coord) coord (player :last-coord))
                 :coord newcoord
                 :last-moved (if-not (= newcoord coord) (current-time) (player :last-moved))
                 :health (update-health player minotaur)
-                :bombs (if (and (:bomb input) (pos? bombs)) (dec bombs) bombs))))
+                :bombs (if should-bomb? (dec bombs) bombs)
+                :last-bombed (if should-bomb? (current-time) (:last-bombed player)))))
 
 (defn update-victory [game]
  (let [[col row] (:coord (game :player))
@@ -170,9 +185,9 @@
        coord (player :coord)
        minotaur (game :minotaur)]
   (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
-              :level (update-bombed input (update-touched level coord) coord (:bombs player))
+              :level (update-bombed input (update-touched level coord) coord player)
               :player (update-player player input level minotaur)
-              :minotaur (update-minotaur minotaur level coord)
+              :minotaur (update-minotaur minotaur level coord game)
               :victory (update-victory game)
               :paused (:pause input))))
 
@@ -187,11 +202,15 @@
          :pause (keys-set \p)}))
 
 (defn new-level [game died?]
-	(let [gamestate (initial-gamestate)]
+	(let [gamestate (initial-gamestate)
+        minotaur (:minotaur game)
+        millis (:millis-per-move minotaur)]
 	  (assoc gamestate :total-treasures (if died? 0 (+ (:treasures-gained game) (:total-treasures game)))
-                     :score (if died? 0 (+ (:score game) (* (:treasures-gained game) (:treasures-gained game))))
+                     :score (if died? 0 (+ (:score game) (* treasure-score-constant (:treasures-gained game) (:treasures-gained game))))
 	                   :levelnum (if died? 1 (inc (:levelnum game)))
-                     :started true)))
+                     :started true
+                     :minotaur (assoc minotaur :millis-per-move (if died? initial-minotaur-millis-per-move
+                                                                          (* minotaur-speed-up millis))))))
 
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
@@ -211,7 +230,7 @@
 (defn pause-wait [keys-set-atom game window frame]
   (if (:pause (get-input @keys-set-atom))
     (do (render game window frame) 
-        (recur keys-set-atom game window frame)))) 
+        (recur keys-set-atom game window frame))))
 
 (let [window (JFrame. "You Can't Escape the Minotaur")
       keys-set-atom (atom #{}) ;set of keyboard keys currently being held down by player

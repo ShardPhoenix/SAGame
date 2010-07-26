@@ -59,8 +59,17 @@
   (render-route gfx (:route (game :minotaur))))
 
 (defn render-victory-screen [gfx game]
+ (let [left-margin (/ window-width 4)
+       top-margin (/ window-height 2)
+       spacing 25
+       treasures (:treasures-gained game)
+       score-gained (* treasure-score-constant treasures treasures)]
   (.setColor gfx (color :black))
-  (.drawString gfx (str "You escaped with " (:treasures-gained game) " treasures!") (/ window-width 4) (/ window-height 2)))
+  (.drawString gfx (str "You escaped with " treasures " treasures!") left-margin top-margin)
+  (.drawString gfx (str treasures " treasures gives " score-gained " points!") left-margin (+ spacing top-margin))
+  (.drawString gfx (str "You now have " (+ score-gained (:score game)) " points in total") left-margin (+ (* 2 spacing) top-margin))
+  (.setColor gfx (color :red)) 
+  (.drawString gfx (str "The minotaur is getting angrier!") left-margin (+ (* 4 spacing) top-margin))))
 
 (defn render-loss-screen [gfx game]
   (.setColor gfx (color :black))
@@ -72,6 +81,24 @@
   (.setColor gfx (color :black))
   (.drawString gfx (str "You Can't Escape the Minotaur!... but you can try!")
     (/ window-width 4) (/ window-height 2)))
+
+(defn render-instructions [gfx]
+ (let [left-margin 25
+       top-margin 200
+       spacing 25]
+  (.setColor gfx (color :black))
+  (.drawString gfx "Advice for those trying to escape the minotaur:" left-margin top-margin)
+  (.drawString gfx "You are: " left-margin (+ (* 1 spacing) top-margin))
+  (render-square gfx :blue [(+ 50 left-margin) (+ (* 0.5 spacing) top-margin)])
+  (.setColor gfx (color :black))
+  (.drawString gfx "Use arrow keys to move" left-margin (+ (* 2 spacing) top-margin))
+  (.drawString gfx "Use Ctrl to bomb the walls around you (two per level)" left-margin (+ (* 3 spacing) top-margin))
+  (.drawString gfx "Collect treasures for points, then escape at the bottom right" left-margin (+ (* 4 spacing) top-margin))
+  (.drawString gfx "Don't get eaten by: " left-margin (+ (* 5 spacing) top-margin))
+  (render-square gfx :brown [(+ 108 left-margin) (+ (* 4.5 spacing) top-margin)])
+  (.setColor gfx (color :black))
+  (.drawString gfx "Use Ctrl or Space to bomb the walls around you" left-margin (+ (* 6 spacing) top-margin))
+  (.drawString gfx "Press p to pause" left-margin (+ (* 7 spacing) top-margin))))
 
 ;smoothly animate by interpolating between previous and current coords depending on speed
 (defn render-smoothly [gfx color unit]
@@ -91,9 +118,10 @@
 
 (defn render-paused [gfx game]
   (render-scores gfx game)
+  (render-instructions gfx) 
   (render-treasures gfx (game :treasures-gained))
   (.setColor gfx (color :black))
-  (.drawString gfx (str "Game paused. Press p to resume.") (/ window-width 4) (/ window-height 2)))
+  (.drawString gfx (str "Game paused. Press p to resume.") (/ window-width 2) (/ window-height 2)))
 
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
@@ -109,6 +137,7 @@
 					  :else  (do 
                      (if debug
 							         (render-debug gfx game frame))
+                     (render-instructions gfx)
 							       (render-level gfx (game :level))
 							       (render-smoothly gfx :blue (game :player)) 
 							       (render-smoothly gfx :brown (game :minotaur))
