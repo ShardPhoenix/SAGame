@@ -104,7 +104,7 @@
 (defn gen-level []
   (let [maze initial-maze
         bottom-right [(- maze-size 2) (- maze-size 2)]]
-    (->> (vals (gen-level2 maze [] bottom-right)) 
+    (->> (vals (gen-level2 maze [] bottom-right))
          (set-random-flags num-treasures :treasure (fn [x] (treasure-spaces x)))
          (set-random-flags 1 :minotaur-start (fn [x] (minotaur-spaces x))))))
 

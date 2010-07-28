@@ -7,8 +7,10 @@
     (java.io File))
   (:use au.net.ryansattler.constants))
 
-;should place images in top level
 (def minotaur-image (ImageIO/read (File. "images/mino.bmp")))
+(def player-image (ImageIO/read (File. "images/hero.bmp")))
+(def treasure-image (ImageIO/read (File. "images/gold.bmp")))
+(def wall-image (ImageIO/read (File. "images/wall.bmp"))) 
 
 
 (defn current-time []
@@ -29,18 +31,20 @@
     (.setColor gfx (color :background))
     (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
 
-(defn render-level [#^Graphics gfx level]
+(defn render-level [#^Graphics gfx window level]
   (doseq [maze-cell level]
     (if (:wall maze-cell)
       (do
-        (.setColor gfx (color :black))
-        (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
+        ;(.setColor gfx (color :black))
+        ;(.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
+          (.drawImage gfx wall-image (maze-cell :x) (maze-cell :y) window))
       (do
         (cond  
-            (:treasure maze-cell) (.setColor gfx (color :gold))
+            (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window) ;(.setColor gfx (color :gold))
             (:touched maze-cell)  (.setColor gfx (color :green))
             :else (.setColor gfx (color :background)))
-        (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)))))
+        ;(.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)
+))))
 
 (defn render-square [#^Graphics gfx thecolor [x y]]
   (.setColor gfx (color thecolor))
@@ -162,10 +166,11 @@
                      (if debug
 							         (render-debug gfx game frame))
                      (render-instructions gfx)
-							       (render-level gfx (game :level))
-							       (render-smoothly gfx :blue (game :player)) 
+							       (render-level gfx window (game :level))
+							       ;(render-smoothly gfx :blue (game :player)) 
 							       ;(render-smoothly gfx :brown (game :minotaur))
                      (render-image-smoothly gfx window minotaur-image (game :minotaur))
+                     (render-image-smoothly gfx window player-image (game :player))
 							       (render-treasures gfx (game :treasures-gained))
 							       (render-scores gfx game)))
       (.drawImage gfx2 image 0 0 window)))
