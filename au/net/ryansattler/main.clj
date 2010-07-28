@@ -122,14 +122,14 @@
 (defn is-in-wall? [coord level]
   (pos? (count (filter true? (map #(and (:wall %) (in-piece? % coord)) level)))))
 
-(defn try-move [[col row] x-direc y-direc level last-moved millis-per-move]
+(defn try-move [[col row :as coord] x-direc y-direc level last-moved millis-per-move]
   (let [thetime (current-time)
         newcoord [(+ col x-direc) (+ row y-direc)]]
 	  (if (and (not (and (zero? x-direc) (zero? y-direc))) 
              (>= (- thetime last-moved) millis-per-move)
              (not (is-in-wall? newcoord level)))
 	     newcoord
-	     [col row])))
+	     coord)))
 
 ;also start moving if enough time has elapsed, etc
 (defn get-minotaur-route [level coord target treasures]
@@ -158,19 +158,20 @@
     0
     1))
 
-(defn update-player [player input level minotaur]
- (let [coord (:coord player) 
-       newcoord (try-move coord (input :x-direc) (input :y-direc) level (player :last-moved) (:millis-per-move player))
-       bombs (:bombs player)
-       should-bomb? (and (:bomb input) 
+(defn update-player [{:keys [coord last-moved last-coord last-bombed millis-per-move bombs] :as player} 
+                     {:keys [x-direc y-direc bomb]}
+                     level 
+                     minotaur]
+ (let [newcoord (try-move coord x-direc y-direc level last-moved millis-per-move)
+       should-bomb? (and  bomb 
                          (pos? bombs) 
-                         (<= bomb-delay (- (current-time) (:last-bombed player))))]
-  (assoc player :last-coord (if-not (= newcoord coord) coord (player :last-coord))
+                         (<= bomb-delay (- (current-time) last-bombed)))]
+  (assoc player :last-coord (if-not (= newcoord coord) coord last-coord)
                 :coord newcoord
-                :last-moved (if-not (= newcoord coord) (current-time) (player :last-moved))
+                :last-moved (if-not (= newcoord coord) (current-time) last-moved)
                 :health (update-health player minotaur)
                 :bombs (if should-bomb? (dec bombs) bombs)
-                :last-bombed (if should-bomb? (current-time) (:last-bombed player)))))
+                :last-bombed (if should-bomb? (current-time) last-bombed))))
 
 (defn update-victory [game]
  (let [[col row] (:coord (game :player))
@@ -180,12 +181,9 @@
     (<= health 0) -1 ;player has died
     :else 0)))
 
-(defn update [game input frame window]
- (let [level (game :level)
-       player (game :player) 
-       coord (player :coord)
-       minotaur (game :minotaur)]
-  (assoc game :treasures-gained (update-treasure level coord (game :treasures-gained))
+(defn update [{:keys [level player minotaur treasures-gained] :as game} input frame window]
+ (let [coord (player :coord)]
+  (assoc game :treasures-gained (update-treasure level coord treasures-gained)
               :level (update-bombed input (update-touched level coord) coord player)
               :player (update-player player input level minotaur)
               :minotaur (update-minotaur minotaur level coord game)
@@ -202,13 +200,13 @@
          :bomb (keys-set VK_CONTROL)
          :pause (keys-set \p)}))
 
-(defn new-level [game died?]
+(defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum] :as game} 
+                 died?]
 	(let [gamestate (initial-gamestate)
-        minotaur (:minotaur game)
         millis (:millis-per-move minotaur)]
-	  (assoc gamestate :total-treasures (if died? 0 (+ (:treasures-gained game) (:total-treasures game)))
-                     :score (if died? 0 (+ (:score game) (* treasure-score-constant (:treasures-gained game) (:treasures-gained game))))
-	                   :levelnum (if died? 1 (inc (:levelnum game)))
+	  (assoc gamestate :total-treasures (if died? 0 (+ treasures-gained total-treasures))
+                     :score (if died? 0 (+ (:score game) (* treasure-score-constant treasures-gained treasures-gained)))
+	                   :levelnum (if died? 1 (inc levelnum))
                      :started true
                      :minotaur (assoc minotaur :millis-per-move (if died? initial-minotaur-millis-per-move
                                                                           (* minotaur-speed-up millis))))))

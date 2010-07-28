@@ -26,7 +26,8 @@
 (def initial-maze
   (into {}
 	  (for [col (range maze-size) row (range maze-size)] 
-	    [[col row] (make-maze-cell col 
+	    [[col row] (make-maze-cell 
+                      col 
                       row 
                       (starts-as-wall? col row)
                       (is-exit? col row))])))
@@ -80,10 +81,11 @@
            (assoc x flagtype true)
            x))))
 
-(defn has-3-walls [mazepiece maze]
-  (let [col (:col mazepiece)
-        row (:row mazepiece)
-        neighbours [[(inc col) row] [(dec col) row] [col (inc row)] [col (dec row)]]]
+(defn has-3-walls [{:keys [col row]} maze]
+  (let [neighbours [[(inc col) row] 
+                    [(dec col) row] 
+                    [col (inc row)] 
+                    [col (dec row)]]]
     (>= (count (filter #(and (some #{[(:col %) (:row %)]} neighbours) (:wall %)) maze)) 3)))
 
 (defn treasure-spaces [maze]
@@ -102,7 +104,7 @@
 (defn gen-level []
   (let [maze initial-maze
         bottom-right [(- maze-size 2) (- maze-size 2)]]
-    (set-random-flags 1 :minotaur-start (fn [x] (minotaur-spaces x))
-      (set-random-flags num-treasures :treasure (fn [x] (treasure-spaces x))
-        (vals (gen-level2 maze [] bottom-right))))))
+    (->> (vals (gen-level2 maze [] bottom-right)) 
+         (set-random-flags num-treasures :treasure (fn [x] (treasure-spaces x)))
+         (set-random-flags 1 :minotaur-start (fn [x] (minotaur-spaces x))))))
 

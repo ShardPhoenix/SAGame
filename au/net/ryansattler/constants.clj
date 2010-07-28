@@ -1,13 +1,13 @@
 (ns au.net.ryansattler.constants)
 
-(def debug false)
+(def debug true)
 
 (def max-fps 60)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
 (def window-width 1024)
 (def window-height 768)
 (def end-screen-time 5000)
-(def start-screen-time 1000) 
+(def start-screen-time 50) 
 
 (def wall-width 16) ;pixels
 (def maze-size 25) ;odd number
