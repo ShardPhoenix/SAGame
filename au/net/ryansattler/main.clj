@@ -97,9 +97,8 @@
 	 (= (:row wall) (dec maze-size))
 	 (= (:row wall) 0)))
 
-(defn update-bombed [input level [col row] player]
- (let [bombs (:bombs player)
-       should-bomb? (<= bomb-delay (- (current-time) (:last-bombed player)))]
+(defn update-bombed [input level [col row] {:keys [bombs last-bombed]}]
+ (let [should-bomb? (<= bomb-delay (- (current-time) last-bombed))]
   (if (and should-bomb? (:bomb input) (pos? bombs))
 	      (let [neighbours [[(inc col) (inc row)]
 	                       [(inc col) (dec row)]
@@ -124,11 +123,11 @@
 
 (defn try-move [[col row :as coord] x-direc y-direc level last-moved millis-per-move]
   (let [thetime (current-time)
-        newcoord [(+ col x-direc) (+ row y-direc)]]
+        new-coord [(+ col x-direc) (+ row y-direc)]]
 	  (if (and (not (and (zero? x-direc) (zero? y-direc))) 
              (>= (- thetime last-moved) millis-per-move)
-             (not (is-in-wall? newcoord level)))
-	     newcoord
+             (not (is-in-wall? new-coord level)))
+	     new-coord
 	     coord)))
 
 ;also start moving if enough time has elapsed, etc
@@ -137,21 +136,20 @@
     (zero? treasures) [coord]
     (pos? treasures) (get-route level coord target))) 
 
-(defn update-minotaur [minotaur level target game]
-  (let [route (:route minotaur)
-        [col row] (:coord minotaur)
-        moved (:last-moved minotaur)
-        treasures (:treasures-gained game)
-        minotaur (assoc minotaur :route (get-minotaur-route level [col row] target treasures))]
-  (if (> (count (:route minotaur)) 1)
-      (let [nextmove (second (:route minotaur))
-            x-direc (- (first nextmove) col)
-            y-direc (- (second nextmove) row)
-            newcoord (try-move [col row] x-direc y-direc level moved (:millis-per-move minotaur))]
-	      minotaur (assoc minotaur :last-coord (if-not (= newcoord [col row]) [col row] (minotaur :last-coord))
-                                 :coord newcoord
-	                               :last-moved (if-not (= newcoord [col row]) (current-time) moved)))
-      minotaur)))
+(defn update-minotaur [{:keys [route coord last-moved last-coord millis-per-move] :as minotaur} 
+                       level 
+                       target 
+                       {:keys [treasures-gained] :as game}]
+  (let [minotaur (assoc minotaur :route (get-minotaur-route level coord target treasures-gained))]
+	  (if (> (count route) 1)
+	      (let [[next-col next-row] (second route)
+	            x-direc (- next-col (first coord))
+	            y-direc (- next-row (second coord))
+	            new-coord (try-move coord x-direc y-direc level last-moved millis-per-move)]
+		          minotaur (assoc minotaur :last-coord (if-not (= new-coord coord) coord last-coord)
+	                                     :coord new-coord
+		                                   :last-moved (if-not (= new-coord coord) (current-time) last-moved)))
+	      minotaur)))
 
 (defn update-health [player minotaur]
   (if (= (:coord minotaur) (:coord player))
