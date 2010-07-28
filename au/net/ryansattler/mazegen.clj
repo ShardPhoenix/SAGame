@@ -91,15 +91,18 @@
                 (not (= [(:col %) (:row %)] [1 1])) ;not on start pos 
                 (has-3-walls % maze)) maze))
 
+;make sure minotaur starts in bottom right of maze
+;STILL doesn't work right?!
+(defn minotaur-spaces [maze]
+  (filter #(and (not (:wall %)) 
+	              (> (:col %) (/ maze-size 2)) 
+	              (> (:row %) (/ maze-size 2))) maze))
+
 ;return just the values (actual maze-cells) for now. Might use whole map later if needed.
 (defn gen-level []
   (let [maze initial-maze
         bottom-right [(- maze-size 2) (- maze-size 2)]]
-    (set-random-flags 1 :minotaur-start
-            ;make sure minotaur starts in bottom right of maze
-            (fn [spaces] (filter #(and (not (:wall %)) 
-                                       (> (:col %) (/ maze-size 2)) 
-                                       (> (:row %) (/ maze-size 2))) spaces))
+    (set-random-flags 1 :minotaur-start (fn [x] (minotaur-spaces x))
       (set-random-flags num-treasures :treasure (fn [x] (treasure-spaces x))
         (vals (gen-level2 maze [] bottom-right))))))
 

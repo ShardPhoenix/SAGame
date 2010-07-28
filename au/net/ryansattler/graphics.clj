@@ -2,8 +2,14 @@
   (:import
     (java.awt Color Dimension Graphics Graphics2D)
     (java.awt.image BufferedImage)
-    (javax.swing JFrame JOptionPane JPanel))
+    (javax.swing JFrame JOptionPane JPanel)
+    (javax.imageio ImageIO)
+    (java.io File))
   (:use au.net.ryansattler.constants))
+
+;should place images in top level
+(def minotaur-image (ImageIO/read (File. "images/mino.bmp")))
+
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -72,10 +78,12 @@
   (.drawString gfx (str "The minotaur is getting angrier!") left-margin (+ (* 4 spacing) top-margin))))
 
 (defn render-loss-screen [gfx game]
+ (let [treasures (:treasures-gained game)
+       score-gained (* treasure-score-constant treasures treasures)]
   (.setColor gfx (color :black))
   (.drawString gfx (str "You couldn't escape the minotaur! You died with " (+ (:treasures-gained game) (:total-treasures game)) 
-                        " treasures and " (dec (:levelnum game)) " levels escaped.")
-    (/ window-width 4) (/ window-height 2)))
+                        " treasures and " (dec (:levelnum game)) " levels escaped, and") (/ window-width 4) (/ window-height 2))
+  (.drawString gfx (str (+ score-gained (:score game)) " points.") (/ window-width 4) (+ 25 (/ window-height 2)))))
 
 (defn render-splash-screen [gfx game]
   (.setColor gfx (color :black))
@@ -97,7 +105,6 @@
   (.drawString gfx "Don't get eaten by: " left-margin (+ (* 5 spacing) top-margin))
   (render-square gfx :brown [(+ 108 left-margin) (+ (* 4.5 spacing) top-margin)])
   (.setColor gfx (color :black))
-  (.drawString gfx "Use Ctrl or Space to bomb the walls around you" left-margin (+ (* 6 spacing) top-margin))
   (.drawString gfx "Press p to pause" left-margin (+ (* 7 spacing) top-margin))))
 
 ;smoothly animate by interpolating between previous and current coords depending on speed
@@ -116,6 +123,23 @@
                       (+ (second last-coord) y-delta)]] 
   (render-square gfx color (coord-to-pix coord-to-draw))))
 
+;refactor plz
+(defn render-image-smoothly [gfx window image unit]
+  (let [coord (:coord unit)
+       last-coord (:last-coord unit)
+       last-moved (:last-moved unit)
+       millis-per-move (:millis-per-move unit) 
+       thetime (current-time)
+       time-since-moved (- thetime last-moved) 
+       x-diff (- (first coord) (first last-coord))
+       y-diff (- (second coord) (second last-coord))
+       x-delta (* x-diff (min 1 (/ time-since-moved millis-per-move)))
+       y-delta (* y-diff (min 1 (/ time-since-moved millis-per-move)))
+       coord-to-draw [(+ (first last-coord) x-delta)
+                      (+ (second last-coord) y-delta)]] 
+  (.drawImage gfx image (int (first (coord-to-pix coord-to-draw))) 
+                        (int (second (coord-to-pix coord-to-draw))) window)))
+
 (defn render-paused [gfx game]
   (render-scores gfx game)
   (render-instructions gfx) 
@@ -126,7 +150,7 @@
 (defn render [game window frame]
   (let [#^BufferedImage image (.createImage window window-width window-height)
         #^Graphics gfx (.createGraphics image)
-        #^Graphics2D gfx2 (.getGraphics #^JFrame window)
+        #^Graphics2D gfx2 (.getGraphics #^JPanel window)
         victory (:victory game)
         started (:started game)]
       (render-background gfx)
@@ -140,7 +164,8 @@
                      (render-instructions gfx)
 							       (render-level gfx (game :level))
 							       (render-smoothly gfx :blue (game :player)) 
-							       (render-smoothly gfx :brown (game :minotaur))
+							       ;(render-smoothly gfx :brown (game :minotaur))
+                     (render-image-smoothly gfx window minotaur-image (game :minotaur))
 							       (render-treasures gfx (game :treasures-gained))
 							       (render-scores gfx game)))
       (.drawImage gfx2 image 0 0 window)))
