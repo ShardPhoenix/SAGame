@@ -1,7 +1,7 @@
 (ns au.net.ryansattler.mazegen
   (:use au.net.ryansattler.constants))
 
-(defstruct maze-cell :col :row :x :y :wall :visited :touched :treasure :minotaur-start :exit)
+(defstruct maze-cell :col :row :x :y :wall :visited :touched :treasure :minotaur-start :exit :bomb-pickup)
 (defn make-maze-cell [col row wall? exit?] 
   (struct maze-cell 
     col 
@@ -9,6 +9,8 @@
     (+ maze-left-margin (* wall-width col)) 
     (+ maze-top-margin (* wall-width row))
     wall?
+    false
+    false
     false
     false
     false
@@ -90,11 +92,17 @@
 
 (defn treasure-spaces [maze]
   (filter #(and (not (:wall %))
+                (not (:bomb-pickup %)) 
+                (not (= [(:col %) (:row %)] [1 1])) ;not on start pos 
+                (has-3-walls % maze)) maze))
+
+(defn bomb-spaces [maze]
+  (filter #(and (not (:wall %))
+                (not (:treasure %)) 
                 (not (= [(:col %) (:row %)] [1 1])) ;not on start pos 
                 (has-3-walls % maze)) maze))
 
 ;make sure minotaur starts in bottom right of maze
-;STILL doesn't work right?!
 (defn minotaur-spaces [maze]
   (filter #(and (not (:wall %)) 
 	              (> (:col %) (/ maze-size 2)) 
@@ -105,6 +113,7 @@
   (let [maze initial-maze
         bottom-right [(- maze-size 2) (- maze-size 2)]]
     (->> (vals (gen-level2 maze [] bottom-right))
-         (set-random-flags num-treasures :treasure (fn [x] (treasure-spaces x)))
-         (set-random-flags 1 :minotaur-start (fn [x] (minotaur-spaces x))))))
+         (set-random-flags num-bomb-pickups :bomb-pickup #(bomb-spaces %)) 
+         (set-random-flags num-treasures :treasure #(treasure-spaces %))
+         (set-random-flags 1 :minotaur-start #(minotaur-spaces %)))))
 

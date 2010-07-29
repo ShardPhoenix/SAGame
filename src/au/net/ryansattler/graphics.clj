@@ -40,7 +40,9 @@
           (.drawImage gfx wall-image (maze-cell :x) (maze-cell :y) window))
       (do
         (cond  
-            (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window) ;(.setColor gfx (color :gold))
+            (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window)
+            (:bomb-pickup maze-cell) (do (.setColor gfx (color :red)) 
+                                         (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
             (:touched maze-cell)  (.setColor gfx (color :green))
             :else (.setColor gfx (color :background)))
         ;(.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)
@@ -112,22 +114,6 @@
   (.drawString gfx "Press p to pause" left-margin (+ (* 7 spacing) top-margin))))
 
 ;smoothly animate by interpolating between previous and current coords depending on speed
-(defn render-smoothly [gfx color unit]
- (let [coord (:coord unit)
-       last-coord (:last-coord unit)
-       last-moved (:last-moved unit)
-       millis-per-move (:millis-per-move unit) 
-       thetime (current-time)
-       time-since-moved (- thetime last-moved) 
-       x-diff (- (first coord) (first last-coord))
-       y-diff (- (second coord) (second last-coord))
-       x-delta (* x-diff (min 1 (/ time-since-moved millis-per-move)))
-       y-delta (* y-diff (min 1 (/ time-since-moved millis-per-move)))
-       coord-to-draw [(+ (first last-coord) x-delta)
-                      (+ (second last-coord) y-delta)]] 
-  (render-square gfx color (coord-to-pix coord-to-draw))))
-
-;refactor plz
 (defn render-image-smoothly [gfx window image unit]
   (let [coord (:coord unit)
        last-coord (:last-coord unit)
@@ -167,8 +153,6 @@
 							         (render-debug gfx game frame))
                      (render-instructions gfx)
 							       (render-level gfx window (game :level))
-							       ;(render-smoothly gfx :blue (game :player)) 
-							       ;(render-smoothly gfx :brown (game :minotaur))
                      (render-image-smoothly gfx window minotaur-image (game :minotaur))
                      (render-image-smoothly gfx window player-image (game :player))
 							       (render-treasures gfx (game :treasures-gained))

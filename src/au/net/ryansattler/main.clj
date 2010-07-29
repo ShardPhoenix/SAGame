@@ -26,6 +26,8 @@
 ;- add 1 random bomb pickup to each level (+ only give one at end)?
 ;- save high scores
 
+;-background starts light grey then gets light red, then redder w/ level number?
+
 ;-Precompile deployed version!
 
 (ns au.net.ryansattler.main
@@ -81,7 +83,8 @@
   (map #(if (in-piece? % coord)
            (assoc % 
               :touched true
-              :treasure false)
+              :treasure false
+              :bomb-pickup false)
            %) 
     level))
 
@@ -153,6 +156,9 @@
     0
     1))
 
+(defn bombs-touched [level coord]
+ (count (filter #(and (:bomb-pickup %) (in-piece? % coord)) level)))
+
 (defn update-player [{:keys [coord last-moved last-coord last-bombed millis-per-move bombs] :as player} 
                      {:keys [x-direc y-direc bomb]}
                      level 
@@ -160,7 +166,8 @@
  (let [newcoord (try-move coord x-direc y-direc level last-moved millis-per-move)
        should-bomb? (and  bomb 
                          (pos? bombs) 
-                         (<= bomb-delay (- (current-time) last-bombed)))]
+                         (<= bomb-delay (- (current-time) last-bombed)))
+       bombs (+ bombs (bombs-touched level coord))]
   (assoc player :last-coord (if-not (= newcoord coord) coord last-coord)
                 :coord newcoord
                 :last-moved (if-not (= newcoord coord) (current-time) last-moved)

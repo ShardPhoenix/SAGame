@@ -17,7 +17,8 @@
 (def initial-player-millis-per-move 66)
 (def bomb-delay 500)
 (def starting-bombs 2)
-(def bombs-per-level 1) 
+(def bombs-per-level 1)
+(def num-bomb-pickups 1) 
 
 (def initial-minotaur-millis-per-move 200)
 (def minotaur-speed-up 0.9)
