@@ -70,6 +70,7 @@
 	  {:score 0
      :levelnum 1
      :started false
+     :start-time (current-time) 
      :victory 0
 	   :level level
 	   :minotaur (make-minotaur minotaurpos)
@@ -131,16 +132,16 @@
 	     coord)))
 
 ;also start moving if enough time has elapsed, etc
-(defn get-minotaur-route [level coord target treasures]
+(defn get-minotaur-route [level coord target treasures start-time]
   (cond
-    (zero? treasures) [coord]
-    (pos? treasures) (get-route level coord target))) 
+    (or (pos? treasures) (> (- (current-time) start-time) 4000)) (get-route level coord target)
+    :else [coord]))
 
 (defn update-minotaur [{:keys [route coord last-moved last-coord millis-per-move] :as minotaur} 
                        level 
                        target 
-                       {:keys [treasures-gained] :as game}]
-  (let [minotaur (assoc minotaur :route (get-minotaur-route level coord target treasures-gained))]
+                       {:keys [treasures-gained start-time] :as game}]
+  (let [minotaur (assoc minotaur :route (get-minotaur-route level coord target treasures-gained start-time))]
 	  (if (> (count route) 1)
 	      (let [[next-col next-row] (second route)
 	            x-direc (- next-col (first coord))

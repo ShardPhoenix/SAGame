@@ -7,10 +7,10 @@
     (java.io File))
   (:use au.net.ryansattler.constants))
 
-(def minotaur-image (ImageIO/read (File. "images/mino.bmp")))
-(def player-image (ImageIO/read (File. "images/hero.bmp")))
-(def treasure-image (ImageIO/read (File. "images/gold.bmp")))
-(def wall-image (ImageIO/read (File. "images/wall.bmp"))) 
+(def minotaur-image (ImageIO/read (File. "images/mino.png")))
+(def player-image (ImageIO/read (File. "images/hero.png")))
+(def treasure-image (ImageIO/read (File. "images/gold.png")))
+(def wall-image (ImageIO/read (File. "images/wall.png"))) 
 
 
 (defn current-time []
@@ -65,8 +65,8 @@
   (.drawString gfx (str "Total score: " (:score game)) 75 125)
   (.drawString gfx (str "Bombs left: " (:bombs (:player game))) 75 150))
 
-(defn render-debug [#^Graphics gfx game frame]
-  (render-route gfx (:route (game :minotaur))))
+(defn render-debug [#^Graphics gfx game frame])
+  ;(render-route gfx (:route (game :minotaur))))
 
 (defn render-victory-screen [gfx game]
  (let [left-margin (/ window-width 4)
