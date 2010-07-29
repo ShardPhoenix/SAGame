@@ -192,17 +192,19 @@
          :bomb (keys-set VK_CONTROL)
          :pause (keys-set \p)}))
 
-(defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum] :as game} 
-                 died?]
+;rework so only one create-level method, but pass in all values
+(defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum player] :as game}]
 	(let [gamestate (initial-gamestate)
+        bombs-left (:bombs player)
         millis (:millis-per-move minotaur)
-        new-minotaur (:minotaur gamestate)]
-	  (assoc gamestate :total-treasures (if died? 0 (+ treasures-gained total-treasures))
-                     :score (if died? 0 (+ (:score game) (* treasure-score-constant treasures-gained treasures-gained)))
-	                   :levelnum (if died? 1 (inc levelnum))
+        new-minotaur (:minotaur gamestate)
+        new-player (:player gamestate)]
+	  (assoc gamestate :total-treasures (+ treasures-gained total-treasures)
+                     :score (+ (:score game) (* treasure-score-constant treasures-gained treasures-gained))
+	                   :levelnum (inc levelnum)
                      :started true
-                     :minotaur (assoc new-minotaur :millis-per-move (if died? initial-minotaur-millis-per-move
-                                                                          (* minotaur-speed-up millis))))))
+                     :player (assoc new-player :bombs (+ bombs-left bombs-per-level))
+                     :minotaur (assoc new-minotaur :millis-per-move (* minotaur-speed-up millis)))))
 
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
@@ -248,11 +250,11 @@
       (cond (pos? (:victory gamestate)) (do
                                          (render gamestate panel frame)
                                          (Thread/sleep end-screen-time)
-                                         (recur (new-level gamestate false) (inc frame)))
+                                         (recur (new-level gamestate) (inc frame)))
             (neg? (:victory gamestate)) (do
                                          (render gamestate panel frame)
                                          (Thread/sleep end-screen-time)
-                                         (recur (new-level gamestate true) (inc frame))) 
+                                         (recur (assoc (initial-gamestate) :started true) (inc frame))) 
             :else (recur gamestate (inc frame))))))
 
 
