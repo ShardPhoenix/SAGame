@@ -7,14 +7,12 @@
 ;- "theseus and minotaur"
 ;- diff. music after minotaur is activated (or player is in trouble etc)
 ;- goal: grab all treasures and escape, don't get caught by minotaur
-;- time limit after which minotaur goes straight for you?
 ;- move to clojure 1.2 beta?
 
 ;- have to exit at start instead? - TRY THIS
 ;- distribute treasures biasedly based on distance from start (and exit if applicable)
 ;- minotaur, when angered (eg pick up treasure), goes there. otherwise follows player if in line of sight, 
 ;- otherwise goes back to start
-;- minotaur always follows player when maximally angry?
 ;- increase branching factor of maze (maybe remove random walls)
 ;- minotaur gets angry based on treasures, time, or both
 
@@ -28,19 +26,15 @@
 ;- add 1 random bomb pickup to each level (+ only give one at end)?
 ;- save high scores
 
-;- have minotaur start moving after ~5 secs regardless
-
 ;-Precompile deployed version!
-
-;- bugs: -minotaur can spawn in wall
-
 
 (ns au.net.ryansattler.main
   (:import
     (java.awt Dimension)
     (javax.swing JFrame JPanel)
     (java.awt.event KeyListener)
-    (java.awt.event KeyEvent))
+    (java.awt.event KeyEvent)
+    (java.lang Thread))
   (:use au.net.ryansattler.constants)
   (:use [au.net.ryansattler.graphics  :only (render configure-gui current-time)])
   (:use [au.net.ryansattler.mazegen :only (gen-level)])
@@ -131,10 +125,9 @@
 	     new-coord
 	     coord)))
 
-;also start moving if enough time has elapsed, etc
 (defn get-minotaur-route [level coord target treasures start-time]
   (cond
-    (or (pos? treasures) (> (- (current-time) start-time) 4000)) (get-route level coord target)
+    (or (pos? treasures) (> (- (current-time) start-time) minotaur-start-delay)) (get-route level coord target)
     :else [coord]))
 
 (defn update-minotaur [{:keys [route coord last-moved last-coord millis-per-move] :as minotaur} 
@@ -202,12 +195,13 @@
 (defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum] :as game} 
                  died?]
 	(let [gamestate (initial-gamestate)
-        millis (:millis-per-move minotaur)]
+        millis (:millis-per-move minotaur)
+        new-minotaur (:minotaur gamestate)]
 	  (assoc gamestate :total-treasures (if died? 0 (+ treasures-gained total-treasures))
                      :score (if died? 0 (+ (:score game) (* treasure-score-constant treasures-gained treasures-gained)))
 	                   :levelnum (if died? 1 (inc levelnum))
                      :started true
-                     :minotaur (assoc minotaur :millis-per-move (if died? initial-minotaur-millis-per-move
+                     :minotaur (assoc new-minotaur :millis-per-move (if died? initial-minotaur-millis-per-move
                                                                           (* minotaur-speed-up millis))))))
 
 (defn create-panel [width height key-code-atom]
@@ -235,29 +229,29 @@
       panel (create-panel window-width window-height keys-set-atom)
       game {:started false}]
   (configure-gui window panel)
-  (java.lang.Thread/sleep 500) ;need to wait to make sure screen ready to draw on - better way to check?
+  (Thread/sleep 500) ;need to wait to make sure screen ready to draw on - better way to check?
   (render game panel 0)
-  (java.lang.Thread/sleep start-screen-time)
+  (Thread/sleep start-screen-time)
   (loop [gamestate (assoc (initial-gamestate) :started true)
          frame 1]
     (let [start-time (current-time)
           input (get-input @keys-set-atom)
           gamestate (update gamestate input frame window)]
          (if (:paused gamestate)
-           (pause-wait keys-set-atom gamestate window frame))
+           (pause-wait keys-set-atom gamestate panel frame))
          (render gamestate panel frame)
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
       (if debug
         (println (double render-time)))
-      (java.lang.Thread/sleep wait-time))
+      (Thread/sleep wait-time))
       (cond (pos? (:victory gamestate)) (do
                                          (render gamestate panel frame)
-                                         (java.lang.Thread/sleep end-screen-time)
+                                         (Thread/sleep end-screen-time)
                                          (recur (new-level gamestate false) (inc frame)))
             (neg? (:victory gamestate)) (do
                                          (render gamestate panel frame)
-                                         (java.lang.Thread/sleep end-screen-time)
+                                         (Thread/sleep end-screen-time)
                                          (recur (new-level gamestate true) (inc frame))) 
             :else (recur gamestate (inc frame))))))
 

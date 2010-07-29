@@ -17,6 +17,7 @@
 (def initial-player-millis-per-move 66)
 (def initial-minotaur-millis-per-move 200)
 (def minotaur-speed-up 0.9)
+(def minotaur-start-delay 4000) 
 (def bomb-delay 500)
 (def starting-bombs 2) 
 
