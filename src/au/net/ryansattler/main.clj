@@ -125,16 +125,19 @@
 	     new-coord
 	     coord)))
 
-(defn get-minotaur-route [level coord target treasures start-time]
+(defn get-minotaur-route [level coord last-moved millis-per-move target treasures start-time]
   (cond
-    (or (pos? treasures) (> (- (current-time) start-time) minotaur-start-delay)) (get-route level coord target)
-    :else [coord]))
+    (and (>= (- (current-time) last-moved) millis-per-move)
+         (or (pos? treasures) (> (- (current-time) start-time) minotaur-start-delay)))
+      (get-route level coord target)
+    :else 
+      [coord]))
 
-(defn update-minotaur [{:keys [route coord last-moved last-coord millis-per-move] :as minotaur} 
+(defn update-minotaur [{:keys [route coord last-coord last-moved last-coord millis-per-move] :as minotaur} 
                        level 
                        target 
                        {:keys [treasures-gained start-time] :as game}]
-  (let [minotaur (assoc minotaur :route (get-minotaur-route level coord target treasures-gained start-time))]
+  (let [minotaur (assoc minotaur :route (get-minotaur-route level coord last-moved millis-per-move target treasures-gained start-time))]
 	  (if (> (count route) 1)
 	      (let [[next-col next-row] (second route)
 	            x-direc (- next-col (first coord))
@@ -192,7 +195,7 @@
          :bomb (keys-set VK_CONTROL)
          :pause (keys-set \p)}))
 
-;rework so only one create-level method, but pass in all values
+;rework so only one create-level method, but pass in all values?
 (defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum player] :as game}]
 	(let [gamestate (initial-gamestate)
         bombs-left (:bombs player)
