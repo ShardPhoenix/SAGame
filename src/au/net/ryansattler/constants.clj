@@ -9,7 +9,7 @@
 (def end-screen-time 5000)
 (def start-screen-time 50) 
 
-(def wall-width 16) ;pixels
+(def wall-width 16) ;pixels, should stay on 16 now that graphics are used
 (def maze-size 25) ;odd number
 (def maze-top-margin 150)
 (def maze-left-margin 450)

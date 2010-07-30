@@ -4,14 +4,15 @@
     (java.awt.image BufferedImage)
     (javax.swing JFrame JOptionPane JPanel)
     (javax.imageio ImageIO)
-    (java.io File))
-  (:use au.net.ryansattler.constants))
+    (java.io File FileInputStream ByteArrayInputStream)
+    (sun.audio AudioStream AudioPlayer))
+  (:use au.net.ryansattler.constants)
+  (:use [clojure.contrib.duck-streams :only (to-byte-array)]))
 
 (def minotaur-image (ImageIO/read (File. "images/mino.png")))
 (def player-image (ImageIO/read (File. "images/hero.png")))
 (def treasure-image (ImageIO/read (File. "images/gold.png")))
 (def wall-image (ImageIO/read (File. "images/wall.png"))) 
-
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -24,6 +25,23 @@
             :black (Color. 0 0 0)
             :background (Color. 255 255 255)})
 
+(defn load-sound [filename]
+  (to-byte-array (FileInputStream. filename))) 
+
+(def sounds {:roar1 (load-sound "sounds/roar1.wav")
+             :roar2 (load-sound "sounds/roar2.wav")
+             :ching (load-sound "sounds/ching.wav")
+             :scream (load-sound "sounds/scream.wav")})
+
+(defn play-sound [sound]
+  (let [audiostream (AudioStream. (ByteArrayInputStream. (sounds sound)))] 
+    (println "playing" sound) 
+    (.start AudioPlayer/player audiostream)))
+
+(defn play-sounds [events]
+  (cond (events :roar) (play-sound :roar1)
+        (events :got-treasure) (play-sound :ching))) 
+
 (defn coord-to-pix [[col row]]
   [(+ maze-left-margin (* col wall-width)) (+  maze-top-margin (* row wall-width))])
 
@@ -31,8 +49,12 @@
     (.setColor gfx (color :background))
     (.fillRect gfx 0 0 ( * 2 window-width) (* 2 window-height)))
 
-(defn render-level [#^Graphics gfx window level]
+(defn render-level [#^Graphics gfx window level levelnum]
+ (let [maze-background-color  
+    ;probably change this back to just white or light grey
+    (Color/getHSBColor 0 (min 1.0 (* 0.1 (dec levelnum))) 1.0)]
   (doseq [maze-cell level]
+    (do (.setColor gfx maze-background-color) (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
     (if (:wall maze-cell)
       (do
         ;(.setColor gfx (color :black))
@@ -42,11 +64,7 @@
         (cond  
             (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window)
             (:bomb-pickup maze-cell) (do (.setColor gfx (color :red)) 
-                                         (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
-            (:touched maze-cell)  (.setColor gfx (color :green))
-            :else (.setColor gfx (color :background)))
-        ;(.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width)
-))))
+                                         (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))))))))
 
 (defn render-square [#^Graphics gfx thecolor [x y]]
   (.setColor gfx (color thecolor))
@@ -86,6 +104,10 @@
 (defn render-loss-screen [gfx game]
  (let [treasures (:treasures-gained game)
        score-gained (* treasure-score-constant treasures treasures)]
+  (play-sound :roar1)
+  (java.lang.Thread/sleep 250)
+  (play-sound :scream) ;& fade to red?
+  (java.lang.Thread/sleep 1500) 
   (.setColor gfx (color :black))
   (.drawString gfx (str "You couldn't escape the minotaur! You died with " (+ (:treasures-gained game) (:total-treasures game)) 
                         " treasures and " (dec (:levelnum game)) " levels escaped, and") (/ window-width 4) (/ window-height 2))
@@ -143,6 +165,7 @@
         #^Graphics2D gfx2 (.getGraphics #^JPanel window)
         victory (:victory game)
         started (:started game)]
+      (println "rendering frame" frame) 
       (render-background gfx)
       (cond (not started) (render-splash-screen gfx game) 
             (pos? victory) (render-victory-screen gfx game)
@@ -151,8 +174,9 @@
 					  :else  (do 
                      (if debug
 							         (render-debug gfx game frame))
+                     (play-sounds (game :sound-events)) 
                      (render-instructions gfx)
-							       (render-level gfx window (game :level))
+							       (render-level gfx window (game :level) (game :levelnum))
                      (render-image-smoothly gfx window minotaur-image (game :minotaur))
                      (render-image-smoothly gfx window player-image (game :player))
 							       (render-treasures gfx (game :treasures-gained))

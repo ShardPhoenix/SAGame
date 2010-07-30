@@ -28,6 +28,15 @@
 
 ;-background starts light grey then gets light red, then redder w/ level number?
 
+;-maybe make game background red but keep maze background light grey
+
+;- add sounds for:
+;- bomb pickup
+;- mino start moving
+;- victory
+;- bombing
+;- random mino noises?
+
 ;-Precompile deployed version!
 
 (ns au.net.ryansattler.main
@@ -73,7 +82,8 @@
      :player (make-player [1 1]) 
      :treasures-gained 0
      :total-treasures 0
-     :paused false}))
+     :paused false
+     :sound-events #{}}))
 
 (defn in-piece? [piece [col row]]
     (and (= (:col piece) col)
@@ -183,14 +193,19 @@
     (<= health 0) -1 ;player has died
     :else 0)))
 
+(defn update-sound-events [new-treasures prev-gained]
+  (conj #{} (if (> new-treasures prev-gained) :got-treasure)))
+
 (defn update [{:keys [level player minotaur treasures-gained] :as game} input frame window]
- (let [coord (player :coord)]
-  (assoc game :treasures-gained (update-treasure level coord treasures-gained)
+ (let [coord (player :coord)
+       new-treasures (update-treasure level coord treasures-gained)]
+  (assoc game :treasures-gained new-treasures
               :level (update-bombed input (update-touched level coord) coord player)
               :player (update-player player input level minotaur)
               :minotaur (update-minotaur minotaur level coord game)
               :victory (update-victory game)
-              :paused (:pause input))))
+              :paused (:pause input)
+              :sound-events (update-sound-events new-treasures treasures-gained))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
@@ -255,14 +270,12 @@
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
       (if debug
-        (println (double render-time)))
+        (println frame ":" (double render-time)))
       (Thread/sleep wait-time))
       (cond (pos? (:victory gamestate)) (do
-                                         (render gamestate panel frame)
                                          (Thread/sleep end-screen-time)
                                          (recur (new-level gamestate) (inc frame)))
             (neg? (:victory gamestate)) (do
-                                         (render gamestate panel frame)
                                          (Thread/sleep end-screen-time)
                                          (recur (assoc (initial-gamestate) :started true) (inc frame))) 
             :else (recur gamestate (inc frame))))))
