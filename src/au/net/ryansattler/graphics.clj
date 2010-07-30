@@ -12,7 +12,8 @@
 (def minotaur-image (ImageIO/read (File. "images/mino.png")))
 (def player-image (ImageIO/read (File. "images/hero.png")))
 (def treasure-image (ImageIO/read (File. "images/gold.png")))
-(def wall-image (ImageIO/read (File. "images/wall.png"))) 
+(def wall-image (ImageIO/read (File. "images/wall.png")))
+(def bomb-image (ImageIO/read (File. "images/bomb.png")))
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -31,7 +32,9 @@
 (def sounds {:roar1 (load-sound "sounds/roar1.wav")
              :roar2 (load-sound "sounds/roar2.wav")
              :ching (load-sound "sounds/ching.wav")
-             :scream (load-sound "sounds/scream.wav")})
+             :scream (load-sound "sounds/scream.wav")
+             :reload (load-sound "sounds/reload.wav")
+             :explosion (load-sound "sounds/explosion.wav")})
 
 (defn play-sound [sound]
   (let [audiostream (AudioStream. (ByteArrayInputStream. (sounds sound)))] 
@@ -40,7 +43,9 @@
 
 (defn play-sounds [events]
   (cond (events :roar) (play-sound :roar1)
-        (events :got-treasure) (play-sound :ching))) 
+        (events :got-treasure) (play-sound :ching)
+        (events :got-bomb) (play-sound :reload)
+        (events :bombed) (play-sound :explosion))) 
 
 (defn coord-to-pix [[col row]]
   [(+ maze-left-margin (* col wall-width)) (+  maze-top-margin (* row wall-width))])
@@ -63,8 +68,7 @@
       (do
         (cond  
             (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window)
-            (:bomb-pickup maze-cell) (do (.setColor gfx (color :red)) 
-                                         (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))))))))
+            (:bomb-pickup maze-cell) (.drawImage gfx bomb-image (maze-cell :x) (maze-cell :y) window)))))))
 
 (defn render-square [#^Graphics gfx thecolor [x y]]
   (.setColor gfx (color thecolor))
@@ -104,7 +108,7 @@
 (defn render-loss-screen [gfx game]
  (let [treasures (:treasures-gained game)
        score-gained (* treasure-score-constant treasures treasures)]
-  (play-sound :roar1)
+  (play-sound :roar2)
   (java.lang.Thread/sleep 250)
   (play-sound :scream) ;& fade to red?
   (java.lang.Thread/sleep 1500) 

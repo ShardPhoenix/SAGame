@@ -27,8 +27,9 @@
 ;- save high scores
 
 ;-background starts light grey then gets light red, then redder w/ level number?
-
 ;-maybe make game background red but keep maze background light grey
+
+;-make game slightly more challenging
 
 ;- add sounds for:
 ;- bomb pickup
@@ -36,6 +37,9 @@
 ;- victory
 ;- bombing
 ;- random mino noises?
+;- better sounds for existing
+
+;- add licence info for sounds
 
 ;-Precompile deployed version!
 
@@ -193,19 +197,22 @@
     (<= health 0) -1 ;player has died
     :else 0)))
 
-(defn update-sound-events [new-treasures prev-gained]
-  (conj #{} (if (> new-treasures prev-gained) :got-treasure)))
+(defn update-sound-events [new-treasures prev-treasures new-player old-player]
+  (conj #{} (if (> new-treasures prev-treasures) :got-treasure)
+            (if (> (:bombs new-player) (:bombs old-player)) :got-bomb)
+            (if (< (:bombs new-player) (:bombs old-player)) :bombed)))
 
 (defn update [{:keys [level player minotaur treasures-gained] :as game} input frame window]
  (let [coord (player :coord)
-       new-treasures (update-treasure level coord treasures-gained)]
+       new-treasures (update-treasure level coord treasures-gained)
+       new-player (update-player player input level minotaur)]
   (assoc game :treasures-gained new-treasures
               :level (update-bombed input (update-touched level coord) coord player)
-              :player (update-player player input level minotaur)
+              :player new-player
               :minotaur (update-minotaur minotaur level coord game)
               :victory (update-victory game)
               :paused (:pause input)
-              :sound-events (update-sound-events new-treasures treasures-gained))))
+              :sound-events (update-sound-events new-treasures treasures-gained new-player player))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
