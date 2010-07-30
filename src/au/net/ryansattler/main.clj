@@ -29,19 +29,19 @@
 ;-background starts light grey then gets light red, then redder w/ level number?
 ;-maybe make game background red but keep maze background light grey
 
+;-mac/linux shell script to start game
+
 ;-make game slightly more challenging
 
 ;- add sounds for:
-;- bomb pickup
 ;- mino start moving
 ;- victory
-;- bombing
 ;- random mino noises?
-;- better sounds for existing
+;- better/tweaked sounds for existing events
 
 ;- add licence info for sounds
 
-;-Precompile deployed version!
+;-Precompile deployed version?
 
 (ns au.net.ryansattler.main
   (:import

@@ -169,7 +169,6 @@
         #^Graphics2D gfx2 (.getGraphics #^JPanel window)
         victory (:victory game)
         started (:started game)]
-      (println "rendering frame" frame) 
       (render-background gfx)
       (cond (not started) (render-splash-screen gfx game) 
             (pos? victory) (render-victory-screen gfx game)
