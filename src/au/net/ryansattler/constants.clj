@@ -7,7 +7,7 @@
 (def window-width 1024)
 (def window-height 768)
 (def end-screen-time 5000)
-(def start-screen-time 50) 
+(def start-screen-time 3000) 
 
 (def wall-width 16) ;pixels, should stay on 16 now that graphics are used
 (def maze-size 25) ;odd number

@@ -15,6 +15,7 @@
 (def wall-image (ImageIO/read (File. "images/wall.png")))
 (def bomb-image (ImageIO/read (File. "images/bomb2.png")))
 (def floor-image (ImageIO/read (File. "images/dirt.png")))
+(def title-image (ImageIO/read (File. "images/title.png"))) 
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -69,9 +70,15 @@
   (.setColor gfx (color thecolor))
   (.fillRect gfx x y wall-width wall-width))
 
-(defn render-treasures [gfx treasures]
+(defn render-treasures [gfx window treasures]
   (dotimes [n treasures]
-    (render-square gfx :gold (coord-to-pix [(+ (* 1.5 n) -9) -5]))))
+    (let [[x y] (coord-to-pix [(+ (* 1.5 n) 0) -4])]
+      (.drawImage gfx treasure-image x y window))))
+
+(defn render-bombs [gfx window bombs]
+  (dotimes [n bombs]
+    (let [[x y] (coord-to-pix [(+ (* 1.5 n) 0) -2])]
+      (.drawImage gfx bomb-image x y window))))
 
 (defn render-route [gfx route]
   (doseq [coord route]
@@ -112,10 +119,11 @@
                         " treasures and " (dec (:levelnum game)) " levels escaped, and") (/ window-width 4) (/ window-height 2))
   (.drawString gfx (str (+ score-gained (:score game)) " points.") (/ window-width 4) (+ 25 (/ window-height 2)))))
 
-(defn render-splash-screen [gfx game]
-  (.setColor gfx (color :black))
-  (.drawString gfx (str "You Can't Escape the Minotaur!... but you can try!")
-    (/ window-width 4) (/ window-height 2)))
+(defn render-splash-screen [gfx window game]
+  (render-background gfx) 
+  (.setColor gfx (color :background))
+  (.drawString gfx "" 0 0) ;work-around for image not appearing for unknown reason
+  (.drawImage gfx title-image (int (/ (- window-width 521) 2)) (int (* 0.30 window-height)) window))
 
 (defn render-instructions [gfx window]
  (let [left-margin 25
@@ -129,8 +137,8 @@
 
   (.drawString gfx "Use arrow keys to move" left-margin (+ (* 2 spacing) top-margin))
 
-  (.drawString gfx "Use Ctrl to        the walls around you (two per level)" left-margin (+ (* 3 spacing) top-margin))
-  (.drawImage gfx bomb-image (int (+ 62 left-margin)) (int (+ (* 2.5 spacing) top-margin)) window)
+  (.drawString gfx "Use Ctrl or Space to        the walls around you" left-margin (+ (* 3 spacing) top-margin))
+  (.drawImage gfx bomb-image (int (+ 112 left-margin)) (int (+ (* 2.5 spacing) top-margin)) window)
 
   (.drawString gfx "Collect more        from the level" left-margin (+ (* 4 spacing) top-margin))
   (.drawImage gfx bomb-image (int (+ 74 left-margin)) (int (+ (* 3.5 spacing) top-margin)) window)
@@ -163,8 +171,10 @@
 
 (defn render-paused [gfx window game]
   (render-scores gfx game)
-  (render-instructions gfx window) 
-  (render-treasures gfx (game :treasures-gained))
+  (if-not (:hidden game) 
+    (render-instructions gfx window))
+  (render-treasures gfx window (game :treasures-gained))
+  (render-bombs gfx window (:bombs (game :player)))
   (.setColor gfx (color :black))
   (.drawString gfx (str "Game paused. Press p to resume.") (/ window-width 2) (/ window-height 2)))
 
@@ -175,7 +185,7 @@
         victory (:victory game)
         started (:started game)]
       (render-background gfx)
-      (cond (not started) (render-splash-screen gfx game) 
+      (cond (not started) (render-splash-screen gfx window game) 
             (pos? victory) (render-victory-screen gfx game)
             (neg? victory) (render-loss-screen gfx game)
             (:paused game) (render-paused gfx window game) 
@@ -188,7 +198,8 @@
 							       (render-level gfx window (game :level) (game :levelnum))
                      (render-image-smoothly gfx window minotaur-image (game :minotaur))
                      (render-image-smoothly gfx window player-image (game :player))
-							       (render-treasures gfx (game :treasures-gained))
+							       (render-treasures gfx window (game :treasures-gained))
+                     (render-bombs gfx window (:bombs (game :player)))
 							       (render-scores gfx game)))
       (.drawImage gfx2 image 0 0 window)))
 

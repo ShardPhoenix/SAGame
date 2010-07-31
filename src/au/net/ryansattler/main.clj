@@ -42,6 +42,8 @@
 
 ;-Precompile deployed version?
 
+;- Debug mode FALSE for release!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 (ns au.net.ryansattler.main
   (:import
     (java.awt Dimension)
@@ -224,7 +226,7 @@
         down (if (keys-set VK_DOWN) 1 0)]
         {:x-direc (+ left right) 
          :y-direc (+ up down)
-         :bomb (keys-set VK_CONTROL)
+         :bomb (seq (intersection keys-set #{VK_CONTROL VK_SPACE}))
          :pause (seq (intersection keys-set #{\p \P}))
          :hide-instructions (seq (intersection keys-set #{\h \H}))}))
 
@@ -242,6 +244,11 @@
                      :player (assoc new-player :bombs (+ bombs-left bombs-per-level))
                      :minotaur (assoc new-minotaur :millis-per-move (* minotaur-speed-up millis)))))
 
+(defn toggle-set [the-set character]
+  (if (the-set character)
+     (disj the-set character)
+     (conj the-set character))) 
+
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
     (getPreferredSize [] (Dimension. width height))
@@ -251,9 +258,7 @@
         (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyCode e))))
     (keyTyped [#^KeyEvent e]
       (if (#{\p \h \P \H} (.getKeyChar e)) 
-        (if-not (seq (intersection @key-code-atom #{\p \h \P \H}))
-          (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyChar e)))
-          (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyChar e))))))))
+        (compare-and-set! key-code-atom @key-code-atom (toggle-set @key-code-atom (.getKeyChar e)))))))
 
 (defn pause-wait [keys-set-atom game panel frame]
   (if (:pause (get-input @keys-set-atom))
@@ -265,7 +270,7 @@
       panel (create-panel window-width window-height keys-set-atom)
       game {:started false}]
   (configure-gui window panel)
-  (Thread/sleep 500) ;need to wait to make sure screen ready to draw on - better way to check?
+  (Thread/sleep 1000) ;need to wait to make sure screen ready to draw on - better way to check?
   (render game panel 0)
   (Thread/sleep start-screen-time)
   (loop [gamestate (assoc (initial-gamestate) :started true)
@@ -276,7 +281,7 @@
          (if (:paused gamestate)
           (do 
            (pause-wait keys-set-atom gamestate panel frame)
-           (compare-and-set! keys-set-atom @keys-set-atom #{})))
+           (compare-and-set! keys-set-atom @keys-set-atom (disj @keys-set-atom \p \P))))
          (render gamestate panel frame)
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
