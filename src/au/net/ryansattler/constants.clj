@@ -4,15 +4,15 @@
 
 (def max-fps 30)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
-(def window-width 1024)
-(def window-height 768)
+(def window-width 850)
+(def window-height 600)
 (def end-screen-time 6000)
 (def start-screen-time 3000) 
 
 (def wall-width 16) ;pixels, should stay on 16 now that graphics are used
 (def maze-size 25) ;odd number
-(def maze-top-margin 150)
-(def maze-left-margin 450)
+(def maze-top-margin 100)
+(def maze-left-margin 350)
 
 (def initial-player-millis-per-move 66)
 (def bomb-delay 500)

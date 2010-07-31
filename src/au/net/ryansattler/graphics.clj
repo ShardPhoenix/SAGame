@@ -16,7 +16,8 @@
 (def bomb-image (ImageIO/read (File. "images/bomb2.png")))
 (def floor-image (ImageIO/read (File. "images/dirt.png")))
 (def title-image (ImageIO/read (File. "images/title.png"))) 
-(def loss-image (ImageIO/read (File. "images/died.png"))) 
+(def loss-image (ImageIO/read (File. "images/died.png")))
+(def victory-image (ImageIO/read (File. "images/victory.png"))) 
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -37,7 +38,8 @@
              :ching (load-sound "sounds/ching.wav")
              :scream (load-sound "sounds/scream.wav")
              :reload (load-sound "sounds/reload2.wav")
-             :explosion (load-sound "sounds/explosion.wav")})
+             :explosion (load-sound "sounds/explosion.wav")
+             :victory (load-sound "sounds/victory3.wav")})
 
 (defn play-sound [sound]
   (let [audiostream (AudioStream. (ByteArrayInputStream. (sounds sound)))] 
@@ -95,37 +97,48 @@
 (defn render-debug [#^Graphics gfx game frame])
   ;(render-route gfx (:route (game :minotaur))))
 
-(defn render-victory-screen [gfx game]
- (let [left-margin (/ window-width 4)
-       top-margin (/ window-height 2)
+(defn render-victory-screen [gfx window game]
+  (let [left-margin (int (/ window-width 3))
+       top-margin (int (/ window-height 2))
        spacing 25
        treasures (:treasures-gained game)
        score-gained (* treasure-score-constant treasures treasures)]
-  (.setColor gfx (color :black))
-  (.drawString gfx (str "You escaped with " treasures " treasures!") left-margin top-margin)
-  (.drawString gfx (str treasures " treasures gives " score-gained " points!") left-margin (+ spacing top-margin))
-  (.drawString gfx (str "You now have " (+ score-gained (:score game)) " points in total") left-margin (+ (* 2 spacing) top-margin))
-  (.setColor gfx (color :red)) 
-  (.drawString gfx (str "The minotaur is getting angrier!") left-margin (+ (* 4 spacing) top-margin))))
+    (play-sound :victory)
+    (java.lang.Thread/sleep 1500) 
+    (render-background gfx)
+	  (.setColor gfx (color :black))
+	  (.drawImage gfx victory-image (int (/ (- window-width 354) 2)) (int (* 0.30 window-height)) window)
+	  (.drawString gfx (str "You escaped level " (:levelnum game)  " with: ") (- left-margin 33) (+ (* 0 spacing) top-margin))
+	  (.drawString gfx (str treasures " treasures") left-margin (+ (* 1 spacing) top-margin))
+	  (.drawString gfx (str score-gained " points gained") left-margin (+ (* 2 spacing) top-margin))
+	  (.drawString gfx (str (+ score-gained (:score game)) " total points") left-margin (+ (* 3 spacing) top-margin))
+	  
+	  (java.lang.Thread/sleep 4000)
+	  (.setColor gfx (color :red))
+	  (play-sound :roar1) 
+	  (.drawString gfx (str "The minotaur is getting angrier!") left-margin (+ (* 5 spacing) top-margin))
+    (java.lang.Thread/sleep 2500)))
 
 (defn render-loss-screen [gfx window game]
  (let [treasures (:treasures-gained game)
        score-gained (* treasure-score-constant treasures treasures)
        total-treasures (+ treasures (:total-treasures game))
        spacing 25
-       y-pos (int (/ window-width 3))
-       x-pos (int (* 0.40 window-height))]
-  (play-sound :roar2)
-  (java.lang.Thread/sleep 250)
-  (play-sound :scream) ;& fade to red?
-  (java.lang.Thread/sleep 2000) 
-  (.setColor gfx (color :black))
-  (.drawImage gfx loss-image (int (/ (- window-width 504) 2)) (int (* 0.30 window-height)) window)
-  (.drawString gfx "You died with: " (- y-pos 33) (+ (* spacing 0) x-pos))
-  (.drawString gfx (str total-treasures " treasures") y-pos (+ (* spacing 1) x-pos))
-  (.drawString gfx (str (dec (:levelnum game)) " levels escaped") y-pos (+ (* spacing 2) x-pos))
-  (.drawString gfx (str (+ score-gained (:score game)) " points") y-pos (+ (* spacing 3) x-pos))
-  (.drawString gfx "Starting new game..." y-pos (+ (* spacing 6) x-pos))))
+       x-pos (int (/ window-width 3))
+       y-pos (int (* 0.45 window-height))]
+	  (play-sound :roar2)
+	  (java.lang.Thread/sleep 250)
+	  (play-sound :scream) ;& fade to red?
+	  (java.lang.Thread/sleep 2000)
+    (render-background gfx)
+	  (.setColor gfx (color :black))
+	  (.drawImage gfx loss-image (int (/ (- window-width 504) 2)) (int (* 0.30 window-height)) window)
+	  (.drawString gfx "You died with: " (- x-pos 33) (+ (* spacing 0) y-pos))
+	  (.drawString gfx (str total-treasures " treasures") x-pos (+ (* spacing 1) y-pos))
+	  (.drawString gfx (str (dec (:levelnum game)) " levels escaped") x-pos (+ (* spacing 2) y-pos))
+	  (.drawString gfx (str (+ score-gained (:score game)) " points") x-pos (+ (* spacing 3) y-pos))
+	  (.drawString gfx "Starting new game..." x-pos (+ (* spacing 6) y-pos))
+    (java.lang.Thread/sleep end-screen-time)))
 
 (defn render-splash-screen [gfx window game]
   (render-background gfx) 
@@ -194,8 +207,8 @@
         started (:started game)]
       (render-background gfx)
       (cond (not started) (render-splash-screen gfx window game) 
-            (pos? victory) (render-victory-screen gfx game)
-            (neg? victory) (render-loss-screen gfx window game)
+            (pos? victory) (render-victory-screen gfx2 window game)
+            (neg? victory) (render-loss-screen gfx2 window game)
             (:paused game) (render-paused gfx window game) 
 					  :else  (do 
                      (if debug

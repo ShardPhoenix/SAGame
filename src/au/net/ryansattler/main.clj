@@ -1,33 +1,17 @@
 ;TODO:
-;- multiple levels, gui (start button etc), high scores
-;- graphical effects, challenge modes, sub-goals, points for squares touched etc
-;- powerups?
-;- sounds/music
 ;- tests
-;- "theseus and minotaur"
-;- diff. music after minotaur is activated (or player is in trouble etc)
-;- goal: grab all treasures and escape, don't get caught by minotaur
 ;- move to clojure 1.2 beta?
 
-;- have to exit at start instead? - TRY THIS
-;- distribute treasures biasedly based on distance from start (and exit if applicable)
-;- minotaur, when angered (eg pick up treasure), goes there. otherwise follows player if in line of sight, 
-;- otherwise goes back to start
+;- have to exit at start instead?
 ;- increase branching factor of maze (maybe remove random walls)
-;- minotaur gets angry based on treasures, time, or both
-
 
 ;- min number of treasures (eg 4) needed to exit?
 ;- redo all rendering coords as relative in col/row etc
-;- make green trail not go "in front of" player (rendering issue - needs delay or something)
 
-;- add 1 random bomb pickup to each level (+ only give one at end)?
 ;- save high scores
 
 ;-background starts light grey then gets light red, then redder w/ level number?
 ;-maybe make game background red but keep maze background light grey
-
-;-mac/linux shell script to start game
 
 ;-make game slightly more challenging
 
@@ -51,6 +35,10 @@
 ;- currently no high-score saving
 ;- currently no music
 ;- need to iterate on difficulty and balance of gameplay elements
+;- interstitial screens could be nicer
+;- more animations?
+;- more sounds? (especially for minotaur)
+;- issues with loading at start, waiting for window to become available, etc.
 
 (ns au.net.ryansattler.main
   (:import
@@ -110,7 +98,7 @@
               :touched true
               :treasure false
               :bomb-pickup false)
-           %) 
+            %) 
     level))
 
 (defn edge-wall? [wall]
@@ -252,10 +240,10 @@
                      :player (assoc new-player :bombs (+ bombs-left bombs-per-level))
                      :minotaur (assoc new-minotaur :millis-per-move (* minotaur-speed-up millis)))))
 
-(defn toggle-set [the-set character]
-  (if (the-set character)
-     (disj the-set character)
-     (conj the-set character))) 
+(defn toggle-set [the-set item]
+  (if (the-set item)
+     (disj the-set item)
+     (conj the-set item))) 
 
 (defn create-panel [width height key-code-atom]
   (proxy [JPanel KeyListener] []
@@ -290,19 +278,20 @@
           (do 
            (pause-wait keys-set-atom gamestate panel frame)
            (compare-and-set! keys-set-atom @keys-set-atom (disj @keys-set-atom \p \P))))
-         (render gamestate panel frame)
-    (let [render-time (- (current-time) start-time)
-          wait-time (max (- min-millis-per-frame render-time) 0)]
-      ;(if debug
-       ; (println frame ":" (double render-time)))
-      (Thread/sleep wait-time))
       (cond (pos? (:victory gamestate)) (do
-                                         (Thread/sleep end-screen-time)
+                                         (render gamestate panel frame)
                                          (recur (new-level gamestate) (inc frame)))
             (neg? (:victory gamestate)) (do
-                                         (Thread/sleep end-screen-time)
-                                         (recur (assoc (initial-gamestate) :started true) (inc frame))) 
-            :else (recur gamestate (inc frame))))))
+                                         (render gamestate panel frame)
+                                         (recur (assoc (initial-gamestate) :started true) (inc frame)))
+            :else (do
+                   (render gamestate panel frame)
+                   (let [render-time (- (current-time) start-time)
+                        wait-time (max (- min-millis-per-frame render-time) 0)]
+		                ;(if debug
+		                   ; (println frame ":" (double render-time)))
+		                    (Thread/sleep wait-time))
+		                    (recur gamestate (inc frame)))))))
 
 
 
