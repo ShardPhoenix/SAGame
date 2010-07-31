@@ -53,7 +53,8 @@
   (:use [au.net.ryansattler.graphics  :only (render configure-gui current-time)])
   (:use [au.net.ryansattler.mazegen :only (gen-level)])
   (:use [au.net.ryansattler.pathfinding :only (get-route)])
-  (:use clojure.contrib.import-static))
+  (:use clojure.contrib.import-static)
+  (:use [clojure.set :only (intersection)]))
 
 (import-static java.awt.event.KeyEvent VK_LEFT VK_RIGHT VK_UP VK_DOWN VK_SPACE VK_SHIFT VK_CONTROL VK_P)
 
@@ -86,6 +87,7 @@
      :treasures-gained 0
      :total-treasures 0
      :paused false
+     :hidden false
      :sound-events #{}}))
 
 (defn in-piece? [piece [col row]]
@@ -212,6 +214,7 @@
               :minotaur (update-minotaur minotaur level coord game)
               :victory (update-victory game)
               :paused (:pause input)
+              :hidden (:hide-instructions input) 
               :sound-events (update-sound-events level new-treasures treasures-gained new-player player minotaur))))
 
 (defn get-input [keys-set] 
@@ -222,7 +225,8 @@
         {:x-direc (+ left right) 
          :y-direc (+ up down)
          :bomb (keys-set VK_CONTROL)
-         :pause (keys-set \p)}))
+         :pause (seq (intersection keys-set #{\p \P}))
+         :hide-instructions (seq (intersection keys-set #{\h \H}))}))
 
 ;rework so only one create-level method, but pass in all values?
 (defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum player] :as game}]
@@ -242,14 +246,12 @@
   (proxy [JPanel KeyListener] []
     (getPreferredSize [] (Dimension. width height))
     (keyPressed [#^KeyEvent e]
-      (if-not (= (.getKeyCode e) VK_P) 
-        (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyCode e)))))
+        (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyCode e))))
     (keyReleased [#^KeyEvent e]
-      (if-not (= (.getKeyCode e) VK_P)
-        (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyCode e)))))
+        (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyCode e))))
     (keyTyped [#^KeyEvent e]
-      (if (= (.getKeyChar e) \p)
-        (if-not (@key-code-atom \p)
+      (if (#{\p \h \P \H} (.getKeyChar e)) 
+        (if-not (seq (intersection @key-code-atom #{\p \h \P \H}))
           (compare-and-set! key-code-atom @key-code-atom (conj @key-code-atom (.getKeyChar e)))
           (compare-and-set! key-code-atom @key-code-atom (disj @key-code-atom (.getKeyChar e))))))))
 

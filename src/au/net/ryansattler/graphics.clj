@@ -39,18 +39,18 @@
 
 (defn play-sound [sound]
   (let [audiostream (AudioStream. (ByteArrayInputStream. (sounds sound)))] 
-    (println "playing" sound) 
+    (if debug (println "playing" sound))
     (.start AudioPlayer/player audiostream)))
 
 (defn play-sounds [events]
-  (cond ;(events :roar) (play-sound :roar1)
-        (events :got-treasure) (play-sound :ching)
+  (cond (events :got-treasure) (play-sound :ching)
         (events :got-bomb) (play-sound :reload)
         (events :bombed) (play-sound :explosion)
         (events :minotaur-started) (play-sound :roar1)))
 
 (defn coord-to-pix [[col row]]
-  [(+ maze-left-margin (* col wall-width)) (+  maze-top-margin (* row wall-width))])
+  [(int (+ maze-left-margin (* col wall-width))) 
+   (int (+ maze-top-margin (* row wall-width)))])
 
 (defn render-background [#^Graphics gfx] 
     (.setColor gfx (color :background))
@@ -58,10 +58,8 @@
 
 (defn render-level [#^Graphics gfx window level levelnum]
  (let [maze-background-color  
-    ;probably change this back to just white or light grey
     (Color/getHSBColor 0 (min 1.0 (* 0.1 (dec levelnum))) 1.0)]
   (doseq [maze-cell level]
-    ;(do (.setColor gfx maze-background-color) (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
     (.drawImage gfx floor-image (maze-cell :x) (maze-cell :y) window)
     (cond (:wall maze-cell) (.drawImage gfx wall-image (maze-cell :x) (maze-cell :y) window)
           (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window)
@@ -119,22 +117,32 @@
   (.drawString gfx (str "You Can't Escape the Minotaur!... but you can try!")
     (/ window-width 4) (/ window-height 2)))
 
-(defn render-instructions [gfx]
+(defn render-instructions [gfx window]
  (let [left-margin 25
        top-margin 200
        spacing 25]
   (.setColor gfx (color :black))
   (.drawString gfx "Advice for those trying to escape the minotaur:" left-margin top-margin)
+
   (.drawString gfx "You are: " left-margin (+ (* 1 spacing) top-margin))
-  (render-square gfx :blue [(+ 50 left-margin) (+ (* 0.5 spacing) top-margin)])
-  (.setColor gfx (color :black))
+  (.drawImage gfx player-image (int (+ 50 left-margin)) (int (+ (* 0.5 spacing) top-margin)) window)
+
   (.drawString gfx "Use arrow keys to move" left-margin (+ (* 2 spacing) top-margin))
-  (.drawString gfx "Use Ctrl to bomb the walls around you (two per level)" left-margin (+ (* 3 spacing) top-margin))
-  (.drawString gfx "Collect treasures for points, then escape at the bottom right" left-margin (+ (* 4 spacing) top-margin))
-  (.drawString gfx "Don't get eaten by: " left-margin (+ (* 5 spacing) top-margin))
-  (render-square gfx :brown [(+ 108 left-margin) (+ (* 4.5 spacing) top-margin)])
-  (.setColor gfx (color :black))
-  (.drawString gfx "Press p to pause" left-margin (+ (* 7 spacing) top-margin))))
+
+  (.drawString gfx "Use Ctrl to        the walls around you (two per level)" left-margin (+ (* 3 spacing) top-margin))
+  (.drawImage gfx bomb-image (int (+ 62 left-margin)) (int (+ (* 2.5 spacing) top-margin)) window)
+
+  (.drawString gfx "Collect more        from the level" left-margin (+ (* 4 spacing) top-margin))
+  (.drawImage gfx bomb-image (int (+ 74 left-margin)) (int (+ (* 3.5 spacing) top-margin)) window)
+
+  (.drawString gfx "Collect        for points, then escape at the bottom right" left-margin (+ (* 5 spacing) top-margin))
+  (.drawImage gfx treasure-image (int (+ 42 left-margin)) (int (+ (* 4.5 spacing) top-margin)) window)  
+
+  (.drawString gfx "Don't get eaten by: " left-margin (+ (* 6 spacing) top-margin))
+  (.drawImage gfx minotaur-image (int (+ 108 left-margin)) (int (+ (* 5.5 spacing) top-margin)) window) 
+ 
+  (.drawString gfx "Press p to pause" left-margin (+ (* 8 spacing) top-margin))
+  (.drawString gfx "Press h to hide these instructions" left-margin (+ (* 9 spacing) top-margin))))
 
 ;smoothly animate by interpolating between previous and current coords depending on speed
 (defn render-image-smoothly [gfx window image unit]
@@ -153,9 +161,9 @@
   (.drawImage gfx image (int (first (coord-to-pix coord-to-draw))) 
                         (int (second (coord-to-pix coord-to-draw))) window)))
 
-(defn render-paused [gfx game]
+(defn render-paused [gfx window game]
   (render-scores gfx game)
-  (render-instructions gfx) 
+  (render-instructions gfx window) 
   (render-treasures gfx (game :treasures-gained))
   (.setColor gfx (color :black))
   (.drawString gfx (str "Game paused. Press p to resume.") (/ window-width 2) (/ window-height 2)))
@@ -170,12 +178,13 @@
       (cond (not started) (render-splash-screen gfx game) 
             (pos? victory) (render-victory-screen gfx game)
             (neg? victory) (render-loss-screen gfx game)
-            (:paused game) (render-paused gfx game) 
+            (:paused game) (render-paused gfx window game) 
 					  :else  (do 
                      (if debug
 							         (render-debug gfx game frame))
-                     (play-sounds (game :sound-events)) 
-                     (render-instructions gfx)
+                     (play-sounds (game :sound-events))
+                     (if-not (:hidden game) 
+                       (render-instructions gfx window))
 							       (render-level gfx window (game :level) (game :levelnum))
                      (render-image-smoothly gfx window minotaur-image (game :minotaur))
                      (render-image-smoothly gfx window player-image (game :player))
