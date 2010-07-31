@@ -84,6 +84,7 @@
      :player (make-player [1 1]) 
      :treasures-gained 0
      :total-treasures 0
+     :free-bombs-given 0
      :paused false
      :hidden false
      :sound-events #{}}))
@@ -196,6 +197,7 @@
     (<= health 0) -1 ;player has died
     :else 0)))
 
+;probably replace with atom + update where event actually happens
 (defn update-sound-events [level new-treasures prev-treasures new-player old-player {:keys [coord last-coord start-coord route]}]
   (conj #{} (if (> new-treasures prev-treasures) :got-treasure)
             (if (> (:bombs new-player) (:bombs old-player)) :got-bomb)
@@ -227,17 +229,20 @@
          :hide-instructions (seq (intersection keys-set #{\h \H}))}))
 
 ;rework so only one create-level method, but pass in all values?
-(defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum player] :as game}]
+(defn new-level [{:keys [minotaur treasures-gained total-treasures levelnum player score free-bombs-given] :as game}]
 	(let [gamestate (initial-gamestate)
         bombs-left (:bombs player)
         millis (:millis-per-move minotaur)
         new-minotaur (:minotaur gamestate)
-        new-player (:player gamestate)]
+        new-player (:player gamestate)
+        new-score (+ (:score game) (* treasure-score-constant treasures-gained treasures-gained))
+        free-bomb? (> (- new-score (* free-bomb-per free-bombs-given)) free-bomb-per)]
 	  (assoc gamestate :total-treasures (+ treasures-gained total-treasures)
-                     :score (+ (:score game) (* treasure-score-constant treasures-gained treasures-gained))
+                     :score new-score
 	                   :levelnum (inc levelnum)
                      :started true
-                     :player (assoc new-player :bombs (+ bombs-left bombs-per-level))
+                     :player (assoc new-player :bombs (+ bombs-left bombs-per-level (if free-bomb? 1 0)))
+                     :free-bombs-given (if free-bomb? (inc free-bombs-given) free-bombs-given)
                      :minotaur (assoc new-minotaur :millis-per-move (* minotaur-speed-up millis)))))
 
 (defn toggle-set [the-set item]

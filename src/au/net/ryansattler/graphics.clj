@@ -89,10 +89,9 @@
 
 (defn render-scores [gfx game]
   (.setColor gfx (color :black))
-  (.drawString gfx (str "Level " (:levelnum game)) 75 75)
-  (.drawString gfx (str "Total treasures: " (:total-treasures game)) 75 100)
-  (.drawString gfx (str "Total score: " (:score game)) 75 125)
-  (.drawString gfx (str "Bombs left: " (:bombs (:player game))) 75 150))
+  (.drawString gfx (str "Level " (:levelnum game)) 50 75)
+  (.drawString gfx (str "Total treasures: " (:total-treasures game)) 50 100)
+  (.drawString gfx (str "Total score: " (:score game)) 50 125))
 
 (defn render-debug [#^Graphics gfx game frame])
   ;(render-route gfx (:route (game :minotaur))))
@@ -102,7 +101,9 @@
        top-margin (int (/ window-height 2))
        spacing 25
        treasures (:treasures-gained game)
-       score-gained (* treasure-score-constant treasures treasures)]
+       score-gained (* treasure-score-constant treasures treasures)
+       total-score (+ score-gained (:score game))
+       free-bomb? (> (- total-score (* free-bomb-per (:free-bombs-given game))) free-bomb-per)]
     (play-sound :victory)
     (java.lang.Thread/sleep 1500) 
     (render-background gfx)
@@ -110,13 +111,16 @@
 	  (.drawImage gfx victory-image (int (/ (- window-width 354) 2)) (int (* 0.30 window-height)) window)
 	  (.drawString gfx (str "You escaped level " (:levelnum game)  " with: ") (- left-margin 33) (+ (* 0 spacing) top-margin))
 	  (.drawString gfx (str treasures " treasures") left-margin (+ (* 1 spacing) top-margin))
-	  (.drawString gfx (str score-gained " points gained") left-margin (+ (* 2 spacing) top-margin))
-	  (.drawString gfx (str (+ score-gained (:score game)) " total points") left-margin (+ (* 3 spacing) top-margin))
-	  
+	  (.drawString gfx (str treasures " x " treasures " x " treasure-score-constant " = " score-gained  " points gained") left-margin (+ (* 2 spacing) top-margin))
+	  (.drawString gfx (str total-score " total points") left-margin (+ (* 3 spacing) top-margin))
+    (if free-bomb?
+      (do 
+        (.drawString gfx (str "You reached a multiple of " free-bomb-per " points so you get a free ") left-margin (+ (* 4 spacing) top-margin)) 
+	      (.drawImage gfx bomb-image (int (+ 305 left-margin)) (int (+ (* 3.5 spacing) top-margin)) window)))
 	  (java.lang.Thread/sleep 4000)
 	  (.setColor gfx (color :red))
 	  (play-sound :roar1) 
-	  (.drawString gfx (str "The minotaur is getting angrier!") left-margin (+ (* 5 spacing) top-margin))
+	  (.drawString gfx (str "The minotaur is getting angrier!") left-margin (+ (* 6 spacing) top-margin))
     (java.lang.Thread/sleep 2500)))
 
 (defn render-loss-screen [gfx window game]

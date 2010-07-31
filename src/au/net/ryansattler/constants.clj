@@ -1,13 +1,13 @@
 (ns au.net.ryansattler.constants)
 
-(def debug true)
+(def debug false)
 
 (def max-fps 30)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
 (def window-width 850)
 (def window-height 600)
 (def end-screen-time 6000)
-(def start-screen-time 3000) 
+(def start-screen-time 1000) 
 
 (def wall-width 16) ;pixels, should stay on 16 now that graphics are used
 (def maze-size 25) ;odd number
@@ -17,8 +17,9 @@
 (def initial-player-millis-per-move 66)
 (def bomb-delay 500)
 (def starting-bombs 2)
-(def bombs-per-level 1)
-(def num-bomb-pickups 1) 
+(def bombs-per-level 0)
+(def num-bomb-pickups 2)
+(def free-bomb-per 5000) 
 
 (def initial-minotaur-millis-per-move 200)
 (def minotaur-speed-up 0.9)
