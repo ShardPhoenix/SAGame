@@ -40,9 +40,17 @@
 
 ;- add licence info for sounds
 
-;-Precompile deployed version?
+;- precompile deployed version?
 
 ;- Debug mode FALSE for release!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+;- Known issues/areas for improvement:
+;- sound a bit wonky due to trying to infer events - just set events when they occur using global atom maybe
+;- mild performance issues - need to optimize minotaur's A* pathing
+;- player can easily overshoot openings
+;- currently no high-score saving
+;- currently no music
+;- need to iterate on difficulty and balance of gameplay elements
 
 (ns au.net.ryansattler.main
   (:import

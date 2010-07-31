@@ -16,6 +16,7 @@
 (def bomb-image (ImageIO/read (File. "images/bomb2.png")))
 (def floor-image (ImageIO/read (File. "images/dirt.png")))
 (def title-image (ImageIO/read (File. "images/title.png"))) 
+(def loss-image (ImageIO/read (File. "images/died.png"))) 
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -107,22 +108,29 @@
   (.setColor gfx (color :red)) 
   (.drawString gfx (str "The minotaur is getting angrier!") left-margin (+ (* 4 spacing) top-margin))))
 
-(defn render-loss-screen [gfx game]
+(defn render-loss-screen [gfx window game]
  (let [treasures (:treasures-gained game)
-       score-gained (* treasure-score-constant treasures treasures)]
+       score-gained (* treasure-score-constant treasures treasures)
+       total-treasures (+ treasures (:total-treasures game))
+       spacing 25
+       y-pos (int (/ window-width 3))
+       x-pos (int (* 0.40 window-height))]
   (play-sound :roar2)
   (java.lang.Thread/sleep 250)
   (play-sound :scream) ;& fade to red?
-  (java.lang.Thread/sleep 1500) 
+  (java.lang.Thread/sleep 2000) 
   (.setColor gfx (color :black))
-  (.drawString gfx (str "You couldn't escape the minotaur! You died with " (+ (:treasures-gained game) (:total-treasures game)) 
-                        " treasures and " (dec (:levelnum game)) " levels escaped, and") (/ window-width 4) (/ window-height 2))
-  (.drawString gfx (str (+ score-gained (:score game)) " points.") (/ window-width 4) (+ 25 (/ window-height 2)))))
+  (.drawImage gfx loss-image (int (/ (- window-width 504) 2)) (int (* 0.30 window-height)) window)
+  (.drawString gfx "You died with: " (- y-pos 33) (+ (* spacing 0) x-pos))
+  (.drawString gfx (str total-treasures " treasures") y-pos (+ (* spacing 1) x-pos))
+  (.drawString gfx (str (dec (:levelnum game)) " levels escaped") y-pos (+ (* spacing 2) x-pos))
+  (.drawString gfx (str (+ score-gained (:score game)) " points") y-pos (+ (* spacing 3) x-pos))
+  (.drawString gfx "Starting new game..." y-pos (+ (* spacing 6) x-pos))))
 
 (defn render-splash-screen [gfx window game]
   (render-background gfx) 
   (.setColor gfx (color :background))
-  (.drawString gfx "" 0 0) ;work-around for image not appearing for unknown reason
+  (.drawString gfx "" 0 0) ;work-around for image not otherwise appearing for unknown reason
   (.drawImage gfx title-image (int (/ (- window-width 521) 2)) (int (* 0.30 window-height)) window))
 
 (defn render-instructions [gfx window]
@@ -187,7 +195,7 @@
       (render-background gfx)
       (cond (not started) (render-splash-screen gfx window game) 
             (pos? victory) (render-victory-screen gfx game)
-            (neg? victory) (render-loss-screen gfx game)
+            (neg? victory) (render-loss-screen gfx window game)
             (:paused game) (render-paused gfx window game) 
 					  :else  (do 
                      (if debug
