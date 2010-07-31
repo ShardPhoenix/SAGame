@@ -13,7 +13,8 @@
 (def player-image (ImageIO/read (File. "images/hero.png")))
 (def treasure-image (ImageIO/read (File. "images/gold.png")))
 (def wall-image (ImageIO/read (File. "images/wall.png")))
-(def bomb-image (ImageIO/read (File. "images/bomb.png")))
+(def bomb-image (ImageIO/read (File. "images/bomb2.png")))
+(def floor-image (ImageIO/read (File. "images/dirt.png")))
 
 (defn current-time []
   (/ (java.lang.System/nanoTime) 1000000))
@@ -33,7 +34,7 @@
              :roar2 (load-sound "sounds/roar2.wav")
              :ching (load-sound "sounds/ching.wav")
              :scream (load-sound "sounds/scream.wav")
-             :reload (load-sound "sounds/reload.wav")
+             :reload (load-sound "sounds/reload2.wav")
              :explosion (load-sound "sounds/explosion.wav")})
 
 (defn play-sound [sound]
@@ -42,10 +43,11 @@
     (.start AudioPlayer/player audiostream)))
 
 (defn play-sounds [events]
-  (cond (events :roar) (play-sound :roar1)
+  (cond ;(events :roar) (play-sound :roar1)
         (events :got-treasure) (play-sound :ching)
         (events :got-bomb) (play-sound :reload)
-        (events :bombed) (play-sound :explosion))) 
+        (events :bombed) (play-sound :explosion)
+        (events :minotaur-started) (play-sound :roar1)))
 
 (defn coord-to-pix [[col row]]
   [(+ maze-left-margin (* col wall-width)) (+  maze-top-margin (* row wall-width))])
@@ -59,16 +61,11 @@
     ;probably change this back to just white or light grey
     (Color/getHSBColor 0 (min 1.0 (* 0.1 (dec levelnum))) 1.0)]
   (doseq [maze-cell level]
-    (do (.setColor gfx maze-background-color) (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
-    (if (:wall maze-cell)
-      (do
-        ;(.setColor gfx (color :black))
-        ;(.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
-          (.drawImage gfx wall-image (maze-cell :x) (maze-cell :y) window))
-      (do
-        (cond  
-            (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window)
-            (:bomb-pickup maze-cell) (.drawImage gfx bomb-image (maze-cell :x) (maze-cell :y) window)))))))
+    ;(do (.setColor gfx maze-background-color) (.fillRect gfx (maze-cell :x) (maze-cell :y)  wall-width wall-width))
+    (.drawImage gfx floor-image (maze-cell :x) (maze-cell :y) window)
+    (cond (:wall maze-cell) (.drawImage gfx wall-image (maze-cell :x) (maze-cell :y) window)
+          (:treasure maze-cell) (.drawImage gfx treasure-image (maze-cell :x) (maze-cell :y) window)
+          (:bomb-pickup maze-cell) (.drawImage gfx bomb-image (maze-cell :x) (maze-cell :y) window)))))
 
 (defn render-square [#^Graphics gfx thecolor [x y]]
   (.setColor gfx (color thecolor))

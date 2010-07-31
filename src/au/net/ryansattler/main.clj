@@ -16,9 +16,7 @@
 ;- increase branching factor of maze (maybe remove random walls)
 ;- minotaur gets angry based on treasures, time, or both
 
-;- use a map of events for eg sound, clear on each loop?
 
-;- display bombs as red square
 ;- min number of treasures (eg 4) needed to exit?
 ;- redo all rendering coords as relative in col/row etc
 ;- make green trail not go "in front of" player (rendering issue - needs delay or something)
@@ -34,10 +32,11 @@
 ;-make game slightly more challenging
 
 ;- add sounds for:
-;- mino start moving
 ;- victory
 ;- random mino noises?
 ;- better/tweaked sounds for existing events
+
+;- only give bomb if escaped with n treasures?
 
 ;- add licence info for sounds
 
@@ -65,9 +64,9 @@
   (let [minotaur-start (first (filter #(true? (:minotaur-start %)) level))]
     [(:col minotaur-start) (:row minotaur-start)]))
 
-(defstruct minotaur :coord :route :last-moved :last-coord :millis-per-move :anger)
+(defstruct minotaur :coord :route :last-moved :last-coord :millis-per-move :anger :start-coord)
 (defn make-minotaur [coord]
-  (struct minotaur coord [coord] (current-time) coord initial-minotaur-millis-per-move 0)) 
+  (struct minotaur coord [coord] (current-time) coord initial-minotaur-millis-per-move 0 coord)) 
 
 (defstruct player :coord :last-moved :last-coord :millis-per-move :health :bombs :last-bombed)
 (defn make-player [coord]
@@ -197,10 +196,11 @@
     (<= health 0) -1 ;player has died
     :else 0)))
 
-(defn update-sound-events [new-treasures prev-treasures new-player old-player]
+(defn update-sound-events [level new-treasures prev-treasures new-player old-player {:keys [coord last-coord start-coord route]}]
   (conj #{} (if (> new-treasures prev-treasures) :got-treasure)
             (if (> (:bombs new-player) (:bombs old-player)) :got-bomb)
-            (if (< (:bombs new-player) (:bombs old-player)) :bombed)))
+            (if (< (:bombs new-player) (:bombs old-player)) :bombed)
+            (if (and (not= coord start-coord) (= last-coord start-coord) (> (count route) 1)) :minotaur-started)))
 
 (defn update [{:keys [level player minotaur treasures-gained] :as game} input frame window]
  (let [coord (player :coord)
@@ -212,7 +212,7 @@
               :minotaur (update-minotaur minotaur level coord game)
               :victory (update-victory game)
               :paused (:pause input)
-              :sound-events (update-sound-events new-treasures treasures-gained new-player player))))
+              :sound-events (update-sound-events level new-treasures treasures-gained new-player player minotaur))))
 
 (defn get-input [keys-set] 
   (let [left (if (keys-set VK_LEFT) -1 0)
@@ -272,12 +272,14 @@
           input (get-input @keys-set-atom)
           gamestate (update gamestate input frame window)]
          (if (:paused gamestate)
-           (pause-wait keys-set-atom gamestate panel frame))
+          (do 
+           (pause-wait keys-set-atom gamestate panel frame)
+           (compare-and-set! keys-set-atom @keys-set-atom #{})))
          (render gamestate panel frame)
     (let [render-time (- (current-time) start-time)
           wait-time (max (- min-millis-per-frame render-time) 0)]
-      (if debug
-        (println frame ":" (double render-time)))
+      ;(if debug
+       ; (println frame ":" (double render-time)))
       (Thread/sleep wait-time))
       (cond (pos? (:victory gamestate)) (do
                                          (Thread/sleep end-screen-time)

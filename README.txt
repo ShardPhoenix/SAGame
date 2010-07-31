@@ -1,4 +1,4 @@
-Run the game by double-clicking minotaur.bat
+Run the game by double-clicking minotaur.bat (Windows) or running minotaur.sh (Linux, Mac).
 
 Gameplay instructions are shown in game, on the left side.
 
@@ -8,6 +8,12 @@ Requires Java. If you don't have Java, you can get it from http://java.com/en/do
 You are a greedy adventurer who wants to venture into the maze of the minotaur and steal his treasures. How long can you escape
 the minotaur, and how rich will you be when he finally catches you?
 
+
+Credits:
+
+Game by Ryan Sattler (Something Awful Forums poster "ShardPhoenix") (xgravityx@hotmail.com).
+
+Graphics contributed by Something Awful Forums poster "Tube".
 
 The following Creative-Commons licenced audio files were used:
 
