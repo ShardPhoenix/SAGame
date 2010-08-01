@@ -14,15 +14,15 @@
 (def maze-top-margin 100)
 (def maze-left-margin 350)
 
-(def initial-player-millis-per-move 66)
+(def initial-player-millis-per-move 75)
 (def bomb-delay 500)
 (def starting-bombs 2)
 (def bombs-per-level 0)
 (def num-bomb-pickups 2)
 (def free-bomb-per 5000) 
 
-(def initial-minotaur-millis-per-move 200)
-(def minotaur-speed-up 0.9)
+(def initial-minotaur-millis-per-move 220)
+(def minotaur-speed-up 0.92)
 (def minotaur-start-delay 4000) 
  
 

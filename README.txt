@@ -15,6 +15,8 @@ Credits:
 
 Game by Ryan Sattler (Something Awful Forums poster "ShardPhoenix") (xgravityx@hotmail.com).
 
+The game is open source. Available here: http://github.com/ShardPhoenix/SAGame
+
 Graphics contributed by Something Awful Forums poster "Tube".
 
 

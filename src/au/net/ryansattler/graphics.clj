@@ -33,9 +33,9 @@
 (defn load-sound [filename]
   (to-byte-array (FileInputStream. filename))) 
 
-(def sounds {:roar1 (load-sound "sounds/roar1.wav")
+(def sounds {:roar1 (load-sound "sounds/roar1-2.wav")
              :roar2 (load-sound "sounds/roar2.wav")
-             :ching (load-sound "sounds/ching.wav")
+             :ching (load-sound "sounds/ching4.wav")
              :scream (load-sound "sounds/scream2.aiff")
              :reload (load-sound "sounds/reload2.wav")
              :explosion (load-sound "sounds/explosion.wav")
