@@ -25,7 +25,6 @@ The following Creative-Commons licenced audio files were used (some modified):
         By hiramjustus (http://www.freesound.org/usersViewSingle.php?id=662292)
             carbonfiber15.wav (http://www.freesound.org/samplesViewSingle.php?id=55338)
         By Robinhood76 (http://www.freesound.org/usersViewSingle.php?id=321967)
-            00927 man scream 1.wav (http://www.freesound.org/samplesViewSingle.php?id=68470)
             01706 wounded jungle animal.wav (http://www.freesound.org/samplesViewSingle.php?id=97315)
         By jenc (http://www.freesound.org/usersViewSingle.php?id=319)
             glassy2.wav (http://www.freesound.org/samplesViewSingle.php?id=522)
@@ -33,3 +32,6 @@ The following Creative-Commons licenced audio files were used (some modified):
             Monster 4.wav (http://www.freesound.org/samplesViewSingle.php?id=48688)
         By jobro (http://www.freesound.org/usersViewSingle.php?id=35187)
             tada1.wav (http://www.freesound.org/samplesViewSingle.php?id=60443)
+        By thanvannispen (http://www.freesound.org/usersViewSingle.php?id=13258)
+            male_scream_Bram_OEAAH.aiff (http://www.freesound.org/samplesViewSingle.php?id=9425)
+
