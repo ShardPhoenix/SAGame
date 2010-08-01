@@ -2,7 +2,7 @@
 
 (def debug false)
 
-(def max-fps 30)
+(def max-fps 100)
 (def min-millis-per-frame (long (/ 1000 max-fps)))
 (def window-width 850)
 (def window-height 600)

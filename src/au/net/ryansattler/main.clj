@@ -236,7 +236,7 @@
         new-minotaur (:minotaur gamestate)
         new-player (:player gamestate)
         new-score (+ (:score game) (* treasure-score-constant treasures-gained treasures-gained))
-        free-bomb? (> (- new-score (* free-bomb-per free-bombs-given)) free-bomb-per)]
+        free-bomb? (>= (- new-score (* free-bomb-per free-bombs-given)) free-bomb-per)]
 	  (assoc gamestate :total-treasures (+ treasures-gained total-treasures)
                      :score new-score
 	                   :levelnum (inc levelnum)

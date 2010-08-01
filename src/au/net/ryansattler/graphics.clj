@@ -36,7 +36,7 @@
 (def sounds {:roar1 (load-sound "sounds/roar1.wav")
              :roar2 (load-sound "sounds/roar2.wav")
              :ching (load-sound "sounds/ching.wav")
-             :scream (load-sound "sounds/scream.wav")
+             :scream (load-sound "sounds/scream2.aiff")
              :reload (load-sound "sounds/reload2.wav")
              :explosion (load-sound "sounds/explosion.wav")
              :victory (load-sound "sounds/victory3.wav")})
@@ -103,7 +103,7 @@
        treasures (:treasures-gained game)
        score-gained (* treasure-score-constant treasures treasures)
        total-score (+ score-gained (:score game))
-       free-bomb? (> (- total-score (* free-bomb-per (:free-bombs-given game))) free-bomb-per)]
+       free-bomb? (>= (- total-score (* free-bomb-per (:free-bombs-given game))) free-bomb-per)]
     (play-sound :victory)
     (java.lang.Thread/sleep 1500) 
     (render-background gfx)
